@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+    <include file="$(find virat_run)/launch/helper/gazebo.launch">
+        <arg name="gui" value="0"/>
+    </include>
+
+    <param name="robot_description" command="cat $(find virat_run)/urdf/virat.urdf"/>
+
+    <include file="$(find virat_run)/launch/helper/spawn.launch">
+        <arg name="name" value="bot"/>
+        <arg name="x" value="0"/>
+        <arg name="y" value="0"/>
+    </include>
+
+    <node name="map_to_odom_transform" pkg="tf2_ros" type="static_transform_publisher" args="0 0 0 0 0 0 map odom"/>
+
+    <node pkg="move_base" type="move_base" name="move_base" output="screen">
+        <rosparam command="load" file="$(find mpc_local_planner)/test/move_base.yaml"/>
+    </node>
+
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find mpc_local_planner)/test/test.rviz"/>
+</launch>

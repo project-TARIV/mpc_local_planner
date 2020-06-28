@@ -1,5 +1,5 @@
 <library path="lib/libmpc_local_planner">
-    <class type="mpc_local_planner::MPC_Local_Planner" base_class_type="nav_core::BaseLocalPlanner">
+    <class name="mpc_local_planner/MPC_Local_Planner" type="mpc_local_planner::MPC_Local_Planner" base_class_type="nav_core::BaseLocalPlanner">
         <description>Local planner based on mpc</description>
     </class>
 </library>

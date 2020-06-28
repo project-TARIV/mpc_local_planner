@@ -27,15 +27,18 @@ void MPC_Local_Planner::initialize(std::string name, tf2_ros::Buffer *tf, costma
 
 bool MPC_Local_Planner::setPlan(const std::vector<geometry_msgs::PoseStamped> &plan) {
     ROS_INFO("Setting Plan");
+    return false;
 }
 
 bool MPC_Local_Planner::computeVelocityCommands(geometry_msgs::Twist &cmd_vel) {
     ROS_INFO("Compute vel");
+    return false;
 
 }
 
 bool MPC_Local_Planner::isGoalReached() {
     ROS_INFO("Checking if goal reached");
+    return false;
 }
 
 #pragma clang diagnostic pop
