@@ -15,6 +15,7 @@
 
   <depend>roscpp</depend>
   <depend>nav_core</depend>
+  <depend>mpc_lib</depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->

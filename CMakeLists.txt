@@ -11,7 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
         roscpp
         mpc_lib
         nav_core
-        )
+)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -90,10 +90,10 @@ find_package(catkin REQUIRED COMPONENTS
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-        #  INCLUDE_DIRS include
-        #  LIBRARIES mpc_local_planner
+        INCLUDE_DIRS include
+        LIBRARIES mpc_local_planner
         #  CATKIN_DEPENDS other_catkin_pkg
-        #  DEPENDS system_lib
+        DEPENDS mpc_lib
 )
 
 ###########
@@ -103,19 +103,18 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-        # include
         ${catkin_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
-# add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/mpc_local_planner.cpp
-# )
+add_library(${PROJECT_NAME}
+  src/mpc_local_planner.cpp
+)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
-# add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
@@ -133,9 +132,10 @@ include_directories(
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-# target_link_libraries(${PROJECT_NAME}_node
-#   ${catkin_LIBRARIES}
-# )
+target_link_libraries(${PROJECT_NAME}
+  #mpc_lib
+  ${catkin_LIBRARIES}
+)
 
 #############
 ## Install ##
@@ -191,4 +191,6 @@ include_directories(
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
-add_library(mpc_local_planner src/mpc_local_planner.cpp)
+
+#add_library(mpc_local_planner src/mpc_local_planner.cpp)
+#target_link_libraries(mpc_local_planner, mpc_lib)
