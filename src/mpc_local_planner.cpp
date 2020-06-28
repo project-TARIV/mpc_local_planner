@@ -2,6 +2,13 @@
 #pragma ide diagnostic ignored "cert-err58-cpp"
 
 #include "../include/mpc_local_planner/mpc_local_planner.h"
+#include <tf2/convert.h>
+#include <tf2/utils.h>
+#include <eigen3/Eigen/QR>
+#include <eigen3/Eigen/Core>
+#include <mpc_lib/utils.h>
+
+
 //#include "mpc_local_planner/mpc_local_planner.h"
 
 #include <pluginlib/class_list_macros.h>
@@ -12,13 +19,13 @@ PLUGINLIB_EXPORT_CLASS(mpc_local_planner::MPC_Local_Planner, nav_core::BaseLocal
 // implement MPC_Local_Planner
 using namespace mpc_local_planner;
 
-MPC_Local_Planner::MPC_Local_Planner() : _initialised{false}, _tf_buffer(nullptr), _costmap(nullptr), _mpc() {
+MPC_Local_Planner::MPC_Local_Planner() : _initialised{false}, _tf_buffer(nullptr), _costmap(nullptr), _mpc(),
+                                         _last_vel() {
     ROS_INFO("Constructing Planner");
 }
 
 MPC_Local_Planner::~MPC_Local_Planner() {
     ROS_INFO("Destroying Planner");
-
 }
 
 
@@ -53,7 +60,12 @@ void MPC_Local_Planner::initialize(std::string name, tf2_ros::Buffer *tf_buffer,
         private_nh.getParam("controller/weights/w_omega_d", _mpc.params.W_OMEGA_D);
         private_nh.getParam("controller/weights/w_acc_d", _mpc.params.W_ACC_D);
 
+        // Todo get velocity, dont assume 0
+        _throttle = 0;
+        _last_vel = {};
+        _last_called = ros::Time::now();
 
+        _initialised = true;
     } else {
         ROS_WARN("Already initialised, doing nothing.");
     }
@@ -64,9 +76,19 @@ bool MPC_Local_Planner::setPlan(const std::vector<geometry_msgs::PoseStamped> &p
         ROS_ERROR("This planner not initialized.");
         return false;
     }
-    // Convert path to relevent frame and save it locally
+    _plan.first.clear();
+    _plan.first.reserve(plan.size());
+    _plan.second.clear();
+    _plan.second.reserve(plan.size());
+    for (const auto &pose : plan) {
+        _plan.first.push_back(pose.pose.position.x);
+        _plan.second.push_back(pose.pose.position.y);
+    }
 
-    ROS_INFO("Setting Plan, %li", plan.size());
+    // Temp
+    _last_called = ros::Time::now();
+
+    ROS_INFO("Setting Plan, of length %li", plan.size());
 
     return true;
 }
@@ -76,11 +98,63 @@ bool MPC_Local_Planner::computeVelocityCommands(geometry_msgs::Twist &cmd_vel) {
         ROS_ERROR("This planner not initialized.");
         return false;
     }
+    ROS_INFO("Starting to compute velocity");
+    auto time = ros::Time::now();
+    const double dt = (time - _last_called).toSec();
 
-    // mpc.solve
+    double x, y, yaw;
+    try {
+        auto trans = _tf_buffer->lookupTransform(_costmap->getGlobalFrameID(), _costmap->getBaseFrameID(),
+                                                 ros::Time(0)).transform;
+        x = trans.translation.x;
+        y = trans.translation.y;
+        double _roll, _pitch;
+        tf2::Matrix3x3(tf2::Quaternion{trans.rotation.x, trans.rotation.y, trans.rotation.z, trans.rotation.w}).getRPY(
+                _roll, _pitch, yaw);
+    } catch (tf2::TransformException &e) {
+        ROS_ERROR("Can't get transform from %s to %s.",
+                  _costmap->getGlobalFrameID().c_str(), _costmap->getBaseFrameID().c_str());
+        return false;
+    }
+    //ROS_INFO("xyw: %fl, %fl, %fl", x, y, yaw);
+    ROS_INFO("Got frame");
+    assert(_plan.first.size() >= 6);
+    Eigen::VectorXd coeffs = polyfit(Eigen::Map<Eigen::VectorXd>(_plan.first.data(), 6),
+                                     Eigen::Map<Eigen::VectorXd>(_plan.second.data(), 6),
+                                     3);
 
+    ROS_INFO("Got poly");
+    double cte = polyeval(coeffs, 0);
+    double etheta = -atan(coeffs[1]);
+
+    const double v = _last_vel.linear.x;
+    const double &omega = _last_vel.angular.z;
+    //double dt = _mpc.params.dt;
+    double current_px = 0.0 + v * dt;
+    double current_py = 0.0;
+    double current_theta = 0.0 + omega * dt;
+    double current_v = v + _throttle * dt;
+    double current_cte = cte + v * sin(etheta) * dt;
+    double current_etheta = etheta - current_theta;
+
+    Eigen::VectorXd model_state(6);
+    model_state << current_px, current_py, current_theta, current_v, current_cte, current_etheta;
+
+    // time to solve !
+
+    std::vector<double> mpc_solns = _mpc.Solve(model_state, coeffs);
+    ROS_INFO("Got solution");
+    cmd_vel.angular.z = mpc_solns[0];
+    _throttle = mpc_solns[1];
+    cmd_vel.linear.x = v + _throttle * dt;
+
+    // Update throttle
+    // throttle =
+    _last_vel = cmd_vel;
+    // Update last time
+    _last_called = time;
     ROS_INFO("Compute vel");
-    return false;
+    return true;
 
 }
 
