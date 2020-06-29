@@ -76,6 +76,8 @@ bool MPC_Local_Planner::setPlan(const std::vector<geometry_msgs::PoseStamped> &p
         ROS_ERROR("This planner not initialized.");
         return false;
     }
+    // Convert plan to a pair of vectors
+
     _plan.first.clear();
     _plan.first.reserve(plan.size());
     _plan.second.clear();
@@ -103,9 +105,13 @@ bool MPC_Local_Planner::computeVelocityCommands(geometry_msgs::Twist &cmd_vel) {
 
 
     ROS_INFO("Starting to compute velocity");
+
     auto time = ros::Time::now();
     const double dt = (time - _last_called).toSec();
+    std::cout << dt << std::endl;
 
+
+    // Get transform to base_frame from global frame
     double x, y, yaw;
     try {
         auto trans = _tf_buffer->lookupTransform(_costmap->getGlobalFrameID(), _costmap->getBaseFrameID(),
@@ -121,24 +127,31 @@ bool MPC_Local_Planner::computeVelocityCommands(geometry_msgs::Twist &cmd_vel) {
         return false;
     }
     //ROS_INFO("xyw: %fl, %fl, %fl", x, y, yaw);
-    ROS_INFO("Got frame");
+    //ROS_INFO("Got frame");
 
+    // Get transform the points to be fitted to base frame
+    // TODO: Transform polynomial instead?
     const size_t num_pts = 20;
     assert(_plan.first.size() >= num_pts);
-    std::vector<double> ptsx, ptsy;
-    ptsx.resize(num_pts);
-    ptsy.resize(num_pts);
+    std::vector<double> plan_x_base, plan_y_trans;
+    plan_x_base.resize(num_pts);
+    plan_y_trans.resize(num_pts);
     for (int i = 0; i < num_pts; i++) {
         double shift_x = _plan.first[i] - x;
         double shift_y = _plan.second[i] - y;
-        ptsx[i] = shift_x * cos(-yaw) - shift_y * sin(-yaw);
-        ptsy[i] = shift_x * sin(-yaw) + shift_y * cos(-yaw);
-        //std::cout << _plan.first[i] << " " << _plan.second[i] << " " << ptsx[i] << " " << ptsy[i] << std::endl;
+        plan_x_base[i] = shift_x * cos(-yaw) - shift_y * sin(-yaw);
+        plan_y_trans[i] = shift_x * sin(-yaw) + shift_y * cos(-yaw);
+        //std::cout << _plan.first[i] << " " << _plan.second[i] << " " << plan_x_base[i] << " " << plan_y_trans[i] << std::endl;
     }
-    Eigen::VectorXd coeffs = polyfit(Eigen::Map<Eigen::VectorXd>(ptsx.data(), std::min(num_pts, ptsx.size())),
-                                     Eigen::Map<Eigen::VectorXd>(ptsy.data(), std::min(num_pts, ptsy.size())),
-                                     3);
-    ROS_INFO("Got poly");
+
+    // Fit transformed plan to a polynomial
+    Eigen::VectorXd coeffs = /*mpc_lib::*/polyfit(
+            Eigen::Map<Eigen::VectorXd>(plan_x_base.data(), num_pts), // std::min(num_pts, plan_x_base.size())),
+            Eigen::Map<Eigen::VectorXd>(plan_y_trans.data(), num_pts), //std::min(num_pts, plan_y_trans.size())),
+            3);
+
+
+    // Print polynomial in format easy to chuck into desmos
     using std::cout;
     cout << "poly" << coeffs.size() << std::endl << std::fixed;
     for (int i = 0; i < coeffs.size(); i++) {
@@ -146,38 +159,42 @@ bool MPC_Local_Planner::computeVelocityCommands(geometry_msgs::Twist &cmd_vel) {
     }
     cout << std::endl << std::scientific;
 
-    double cte = coeffs(0);// polyeval(coeffs, 0);
+
+    // cte: 'Cross track error'
+    double cte = coeffs(0); // polyeval(coeffs, 0);
+    // etheta: 'Theta error'
     double etheta = -atan(coeffs[1]);
     std::cout << cte << " " << etheta * 180 / pi() << std::endl;
 
+
     State s{};
-    std::cout << dt << std::endl;
-    const double v = _last_vel.linear.x;
+    const double &v = _last_vel.linear.x;
     const double &omega = _last_vel.angular.z;
-    _mpc.params.dt = dt
     s.x = v * dt;
     s.y = 0;
     s.theta = omega * dt;
     s.v = v + _throttle * dt;
     s.cte = cte + v * sin(etheta) * dt; // Change in te required , i.e position?
     s.etheta = etheta - s.theta; // Change in angle required
-    _mpc.params.dt = dt;
     std::cout << s.x << " " << s.y << " " << s.theta * 180 / pi() << " " << s.v << " " << s.cte << " "
               << s.etheta * 180 / pi() << std::endl;
+
+
     // time to solve !
     std::vector<double> mpc_solns;
     if (!_mpc.Solve(s, coeffs, mpc_solns))
         return false;
+
 
     ROS_INFO("Got solution");
     cmd_vel.angular.z = mpc_solns[0];
     _throttle = mpc_solns[1];
     cmd_vel.linear.x = v + _throttle * dt;
 
-    // Update throttle
+    // Update velocity and time
     _last_vel = cmd_vel;
-    // Update last time
     _last_called = time;
+
     ROS_INFO("Compute vel");
     return true;
 }

@@ -16,21 +16,21 @@ MPC_Local_Planner:
       maxThrottle: 5.0
 
     weights:
-      w_cte: 3000
+      w_cte: 1000 # 3000
       w_etheta: 3000
-      w_vel: 1500
+      w_vel: 100 # 1500
       w_omega: 5
       w_acc: 5
       w_omega_d: 10
       w_acc_d: 500
-      
+
 global_costmap:
   global_frame: map
 
-  width: 10.0
-  height: 10.0
-  origin_x: -5.0
-  origin_y: -5.0
+  width: 30.0
+  height: 30.0
+  origin_x: -15.0
+  origin_y: -15.0
 
   plugins:
     - {name: obstacle_layer, type: "costmap_2d::ObstacleLayer"}
