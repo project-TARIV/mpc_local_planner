@@ -161,7 +161,7 @@ bool MPC_Local_Planner::computeVelocityCommands(geometry_msgs::Twist &cmd_vel) {
     s.v = v + _throttle * dt;
     s.cte = cte + v * sin(etheta) * dt; // Change in te required , i.e position?
     s.etheta = etheta - s.theta; // Change in angle required
-
+    _mpc.params.dt = dt;
     std::cout << s.x << " " << s.y << " " << s.theta * 180 / pi() << " " << s.v << " " << s.cte << " "
               << s.etheta * 180 / pi() << std::endl;
     // time to solve !
@@ -191,7 +191,7 @@ bool MPC_Local_Planner::isGoalReached() {
     //IDK
 
     ROS_INFO("Checking if goal reached");
-    return false;
+    return _plan.first.empty();
 }
 
 #pragma clang diagnostic pop
