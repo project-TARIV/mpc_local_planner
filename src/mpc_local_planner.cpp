@@ -41,24 +41,24 @@ void MPC_Local_Planner::initialize(std::string name, tf2_ros::Buffer *tf_buffer,
 //        dynamic_reconfigure::Server<mpc_local_planner_config>::CallbackType cb = boost::bind(&MPC_Local_Planner::reconfigureCB, this, _1, _2);
 //        _dsrv->setCallback(cb);
 
-        // TODO: Do this better
-        private_nh.getParam("controller/timeSteps", _mpc.params.N);
-        private_nh.getParam("controller/sampleTime", _mpc.params.dt);
+                // TODO: Do this better
+        private_nh.getParam("controller/timeSteps", mpcParams.N);
+        private_nh.getParam("controller/sampleTime", mpcParams.dt);
 
-        private_nh.getParam("controller/reference/velocity", _mpc.params.ref_v);
-        private_nh.getParam("controller/reference/crossTrackError", _mpc.params.ref_cte);
-        private_nh.getParam("controller/reference/orientationError", _mpc.params.ref_etheta);
+        private_nh.getParam("controller/reference/velocity",mpcParams.ref_v);
+        private_nh.getParam("controller/reference/crossTrackError",mpcParams.ref_cte);
+        private_nh.getParam("controller/reference/orientationError",mpcParams.ref_etheta);
 
-        private_nh.getParam("controller/maxBounds/maxOmega", _mpc.params.MAX_OMEGA);
-        private_nh.getParam("controller/maxBounds/maxThrottle", _mpc.params.MAX_THROTTLE);
+        private_nh.getParam("controller/maxBounds/maxOmega",mpcParams.MAX_OMEGA);
+        private_nh.getParam("controller/maxBounds/maxThrottle",mpcParams.MAX_THROTTLE);
 
-        private_nh.getParam("controller/weights/w_cte", _mpc.params.W_CTE);
-        private_nh.getParam("controller/weights/w_etheta", _mpc.params.W_ETHETA);
-        private_nh.getParam("controller/weights/w_vel", _mpc.params.W_VEL);
-        private_nh.getParam("controller/weights/w_omega", _mpc.params.W_OMEGA);
-        private_nh.getParam("controller/weights/w_acc", _mpc.params.W_ACC);
-        private_nh.getParam("controller/weights/w_omega_d", _mpc.params.W_OMEGA_D);
-        private_nh.getParam("controller/weights/w_acc_d", _mpc.params.W_ACC_D);
+        private_nh.getParam("controller/weights/w_cte",mpcParams.W_CTE);
+        private_nh.getParam("controller/weights/w_etheta",mpcParams.W_ETHETA);
+        private_nh.getParam("controller/weights/w_vel",mpcParams.W_VEL);
+        private_nh.getParam("controller/weights/w_omega",mpcParams.W_OMEGA);
+        private_nh.getParam("controller/weights/w_acc",mpcParams.W_ACC);
+        private_nh.getParam("controller/weights/w_omega_d",mpcParams.W_OMEGA_D);
+        private_nh.getParam("controller/weights/w_acc_d",mpcParams.W_ACC_D);
 
         // Todo get velocity, dont assume 0
         _throttle = 0;
@@ -150,24 +150,31 @@ bool MPC_Local_Planner::computeVelocityCommands(geometry_msgs::Twist &cmd_vel) {
     double etheta = -atan(coeffs[1]);
     std::cout << cte << " " << etheta * 180 / pi() << std::endl;
 
-    State s{};
     std::cout << dt << std::endl;
     const double v = _last_vel.linear.x;
     const double &omega = _last_vel.angular.z;
-    //double dt = _mpc.params.dt;
-    s.x = v * dt;
-    s.y = 0;
-    s.theta = omega * dt;
-    s.v = v + _throttle * dt;
-    s.cte = cte + v * sin(etheta) * dt; // Change in te required , i.e position?
-    s.etheta = etheta - s.theta; // Change in angle required
-    _mpc.params.dt = dt;
-    std::cout << s.x << " " << s.y << " " << s.theta * 180 / pi() << " " << s.v << " " << s.cte << " "
-              << s.etheta * 180 / pi() << std::endl;
+    //double dt =mpcParams.dt;
+//    s.x = v * dt;
+//    s.y = 0;
+//    s.theta = omega * dt;
+//    s.v = v + _throttle * dt;
+//    s.cte = cte + v * sin(etheta) * dt; // Change in te required , i.e position?
+//    s.etheta = etheta - s.theta; // Change in angle required
+//   mpcParams.dt = dt;
+//    std::cout << s.x << " " << s.y << " " << s.theta * 180 / pi() << " " << s.v << " " << s.cte << " "
+//              << s.etheta * 180 / pi() << std::endl;
+    // double dt = mpcParams.dt;
+    double current_px = 0.0 + v * dt;
+    double current_py = 0.0;
+    double current_theta = 0.0 + omega * dt;
+    double current_v = v + _throttle * dt;
+    double current_cte = cte + v * sin(etheta) * dt;
+    double current_etheta = etheta - current_theta;
+
+    Eigen::VectorXd model_state(6);
+    model_state << current_px, current_py, current_theta, current_v, current_cte, current_etheta;
     // time to solve !
-    std::vector<double> mpc_solns;
-    if (!_mpc.Solve(s, coeffs, mpc_solns))
-        return false;
+    std::vector<double> mpc_solns = _mpc.Solve(model_state, coeffs, mpcParams);
 
     ROS_INFO("Got solution");
     cmd_vel.angular.z = mpc_solns[0];

@@ -38,6 +38,7 @@ namespace mpc_local_planner {
         geometry_msgs::Twist _last_vel;
         double _throttle{0};
         ros::Time _last_called; // or should i just use controller frequency?
+        MPCparams mpcParams;
 
         // void reconfigureCB(DWAPlannerConfig &config, uint32_t level);
     };
