@@ -86,7 +86,7 @@ bool MPC_Local_Planner::setPlan(const std::vector<geometry_msgs::PoseStamped> &p
     }
 
     // Temp
-    _last_called = ros::Time::now();
+    //_last_called = ros::Time::now();
 
     ROS_INFO("Setting Plan, of length %li", plan.size());
 
@@ -98,6 +98,10 @@ bool MPC_Local_Planner::computeVelocityCommands(geometry_msgs::Twist &cmd_vel) {
         ROS_ERROR("This planner not initialized.");
         return false;
     }
+
+    // Check whether we should remove points from path..
+
+
     ROS_INFO("Starting to compute velocity");
     auto time = ros::Time::now();
     const double dt = (time - _last_called).toSec();
@@ -118,44 +122,64 @@ bool MPC_Local_Planner::computeVelocityCommands(geometry_msgs::Twist &cmd_vel) {
     }
     //ROS_INFO("xyw: %fl, %fl, %fl", x, y, yaw);
     ROS_INFO("Got frame");
-    assert(_plan.first.size() >= 6);
-    Eigen::VectorXd coeffs = polyfit(Eigen::Map<Eigen::VectorXd>(_plan.first.data(), 6),
-                                     Eigen::Map<Eigen::VectorXd>(_plan.second.data(), 6),
+
+    const size_t num_pts = 20;
+    assert(_plan.first.size() >= num_pts);
+    std::vector<double> ptsx, ptsy;
+    ptsx.resize(num_pts);
+    ptsy.resize(num_pts);
+    for (int i = 0; i < num_pts; i++) {
+        double shift_x = _plan.first[i] - x;
+        double shift_y = _plan.second[i] - y;
+        ptsx[i] = shift_x * cos(-yaw) - shift_y * sin(-yaw);
+        ptsy[i] = shift_x * sin(-yaw) + shift_y * cos(-yaw);
+        //std::cout << _plan.first[i] << " " << _plan.second[i] << " " << ptsx[i] << " " << ptsy[i] << std::endl;
+    }
+    Eigen::VectorXd coeffs = polyfit(Eigen::Map<Eigen::VectorXd>(ptsx.data(), std::min(num_pts, ptsx.size())),
+                                     Eigen::Map<Eigen::VectorXd>(ptsy.data(), std::min(num_pts, ptsy.size())),
                                      3);
-
     ROS_INFO("Got poly");
-    double cte = polyeval(coeffs, 0);
-    double etheta = -atan(coeffs[1]);
+    using std::cout;
+    cout << "poly" << coeffs.size() << std::endl << std::fixed;
+    for (int i = 0; i < coeffs.size(); i++) {
+        cout << " + " << coeffs(i) << "*x^" << i << " ";
+    }
+    cout << std::endl << std::scientific;
 
+    double cte = coeffs(0);// polyeval(coeffs, 0);
+    double etheta = -atan(coeffs[1]);
+    std::cout << cte << " " << etheta * 180 / pi() << std::endl;
+
+    State s{};
+    std::cout << dt << std::endl;
     const double v = _last_vel.linear.x;
     const double &omega = _last_vel.angular.z;
     //double dt = _mpc.params.dt;
-    double current_px = 0.0 + v * dt;
-    double current_py = 0.0;
-    double current_theta = 0.0 + omega * dt;
-    double current_v = v + _throttle * dt;
-    double current_cte = cte + v * sin(etheta) * dt;
-    double current_etheta = etheta - current_theta;
+    s.x = v * dt;
+    s.y = 0;
+    s.theta = omega * dt;
+    s.v = v + _throttle * dt;
+    s.cte = cte + v * sin(etheta) * dt; // Change in te required , i.e position?
+    s.etheta = etheta - s.theta; // Change in angle required
 
-    Eigen::VectorXd model_state(6);
-    model_state << current_px, current_py, current_theta, current_v, current_cte, current_etheta;
-
+    std::cout << s.x << " " << s.y << " " << s.theta * 180 / pi() << " " << s.v << " " << s.cte << " "
+              << s.etheta * 180 / pi() << std::endl;
     // time to solve !
+    std::vector<double> mpc_solns;
+    if (!_mpc.Solve(s, coeffs, mpc_solns))
+        return false;
 
-    std::vector<double> mpc_solns = _mpc.Solve(model_state, coeffs);
     ROS_INFO("Got solution");
     cmd_vel.angular.z = mpc_solns[0];
     _throttle = mpc_solns[1];
     cmd_vel.linear.x = v + _throttle * dt;
 
     // Update throttle
-    // throttle =
     _last_vel = cmd_vel;
     // Update last time
     _last_called = time;
     ROS_INFO("Compute vel");
     return true;
-
 }
 
 bool MPC_Local_Planner::isGoalReached() {

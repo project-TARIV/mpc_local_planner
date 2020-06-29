@@ -8,7 +8,7 @@
 
     <include file="$(find virat_run)/launch/helper/spawn.launch">
         <arg name="name" value="bot"/>
-        <arg name="x" value="0"/>
+        <arg name="x" value="1"/>
         <arg name="y" value="0"/>
     </include>
 
