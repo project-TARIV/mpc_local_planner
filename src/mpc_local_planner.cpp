@@ -154,7 +154,7 @@ bool MPC_Local_Planner::computeVelocityCommands(geometry_msgs::Twist &cmd_vel) {
     std::cout << dt << std::endl;
     const double v = _last_vel.linear.x;
     const double &omega = _last_vel.angular.z;
-    //double dt = _mpc.params.dt;
+    _mpc.params.dt = dt
     s.x = v * dt;
     s.y = 0;
     s.theta = omega * dt;
