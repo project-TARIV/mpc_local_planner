@@ -1,24 +1,27 @@
 base_global_planner: global_planner/GlobalPlanner
 base_local_planner: mpc_local_planner/MPC_Local_Planner
 
+planner_frequency: 0
+controller_frequency: 10
+
 MPC_Local_Planner:
   controller:
     timeSteps: 12
     sampleTime: 0.1
 
     reference:
-      velocity: 2
+      velocity: 1
       crossTrackError: 0
       orientationError: 0
 
     maxBounds:
-      maxOmega: 3.0
+      maxOmega: 1.0
       maxThrottle: 5.0
 
     weights:
       w_cte: 1000 # 3000
       w_etheta: 3000
-      w_vel: 100 # 1500
+      w_vel: 1000 # 1500
       w_omega: 5
       w_acc: 5
       w_omega_d: 10

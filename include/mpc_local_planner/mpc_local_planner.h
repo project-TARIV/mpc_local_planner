@@ -7,6 +7,7 @@
 
 namespace mpc_local_planner {
     class MPC_Local_Planner : public nav_core::BaseLocalPlanner {
+
     public:
         void initialize(std::string name, tf2_ros::Buffer *tf_buffer, costmap_2d::Costmap2DROS *costmap);
 
@@ -25,18 +26,22 @@ namespace mpc_local_planner {
         }
 
     private:
+        void publish_plan(const std::vector<std::pair<double,double>> & plan);
+
         bool _initialised;
+        unsigned int _i;
 
         tf2_ros::Buffer *_tf_buffer;
         costmap_2d::Costmap2DROS *_costmap;
+        ros::Publisher _pub;
 
-        MPC _mpc;
+        mpc_lib::MPC _mpc;
 
 
         std::pair<std::vector<double>, std::vector<double> > _plan;
 
         geometry_msgs::Twist _last_vel;
-        double _throttle{0};
+        double _accel{0};
         ros::Time _last_called; // or should i just use controller frequency?
 
         // void reconfigureCB(DWAPlannerConfig &config, uint32_t level);

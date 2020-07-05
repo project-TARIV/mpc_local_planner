@@ -11,6 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
         roscpp
         mpc_lib
         nav_core
+        nav_msgs
         )
 
 find_package(Eigen3 3.3 REQUIRED)
