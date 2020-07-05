@@ -11,7 +11,9 @@ find_package(catkin REQUIRED COMPONENTS
         roscpp
         mpc_lib
         nav_core
-)
+        )
+
+find_package(Eigen3 3.3 REQUIRED)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -108,8 +110,8 @@ include_directories(
 
 ## Declare a C++ library
 add_library(${PROJECT_NAME}
-  src/mpc_local_planner.cpp
-)
+        src/mpc_local_planner.cpp
+        )
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
@@ -133,9 +135,9 @@ add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EX
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(${PROJECT_NAME}
-  #mpc_lib
-  ${catkin_LIBRARIES}
-)
+        Eigen3::Eigen
+        ${catkin_LIBRARIES}
+        )
 
 #############
 ## Install ##
