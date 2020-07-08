@@ -101,7 +101,7 @@ bool MPC_Local_Planner::computeVelocityCommands(geometry_msgs::Twist &cmd_vel) {
 
     auto time = ros::Time::now();
     const double dt = (time - _last_called).toSec();
-    std::cout << dt << std::endl;
+    std::cout << 1 / dt << std::endl;
 
 
     // Get transform to base_frame from global frame
@@ -139,7 +139,7 @@ bool MPC_Local_Planner::computeVelocityCommands(geometry_msgs::Twist &cmd_vel) {
     Eigen::VectorXd coeffs = mpc_lib::polyfit(
             Eigen::Map<Eigen::VectorXd>(plan_x_trans.data(), num_pts), // std::min(num_pts, plan_x_trans.size())),
             Eigen::Map<Eigen::VectorXd>(plan_y_trans.data(), num_pts), //std::min(num_pts, plan_y_trans.size())),
-            2);
+            3);
 
 
 /*

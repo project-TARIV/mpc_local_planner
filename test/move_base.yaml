@@ -6,7 +6,7 @@ controller_frequency: 10
 
 MPC_Local_Planner:
   controller:
-    timeSteps: 12
+    timeSteps: 10
     sampleTime: 0.1
 
     reference:
