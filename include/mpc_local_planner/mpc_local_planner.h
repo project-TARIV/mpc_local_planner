@@ -3,7 +3,7 @@
 
 #include <ros/ros.h>
 #include <nav_core/base_local_planner.h>
-#include <mpc_lib/dDrive_MPC.h>
+#include <mpc_lib/mpc_lib.h>
 
 namespace mpc_local_planner {
     class MPC_Local_Planner : public nav_core::BaseLocalPlanner {
