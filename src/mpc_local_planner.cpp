@@ -99,12 +99,6 @@ bool MPC_Local_Planner::computeVelocityCommands(geometry_msgs::Twist &cmd_vel) {
         ROS_ERROR("This planner not initialized.");
         return false;
     }
-
-    // TODO: Check whether we should remove points from path..
-
-
-
-
     auto time = ros::Time::now();
     const double dt = (time - _last_called).toSec();
     std::cout << 1 / dt << std::endl;
@@ -127,19 +121,52 @@ bool MPC_Local_Planner::computeVelocityCommands(geometry_msgs::Twist &cmd_vel) {
         return false;
     }
 
+    auto &px = _plan.first;
+    auto &py = _plan.second;
+
+
+    {
+        ROS_INFO("Checking if goal reached");
+        size_t i = 0;
+
+        for (; i < px.size() - 1; i++) {
+            // This is dot product of vector A-P and B-P
+            // Where P is current robot position,  A is _plan[i] and B is _plan[i+1]
+            if ((x - px[i]) * (px[i + 1] - px[i]) + (y - py[i]) * (py[i + 1] - py[i]) < 0) {
+                break; // i.e this point not crossed yet.
+            }
+        }
+        if (i > 0) {
+            px.erase(px.begin(), px.begin() + i);
+            py.erase(py.begin(), py.begin() + i);
+            ROS_INFO("Removed %lu points, now %lu", i, px.size());
+        }
+        // TODO: Reverse the vector so deletions from path dont require whole path to be copied. Switch to list if this matters
+    }
+
+    if (px.size() <= 10 /* poly_order*/) {
+        px.clear();
+        py.clear();
+        cmd_vel.linear.x = 0;
+        cmd_vel.angular.z = 0;
+        ROS_INFO("Goal Reached");
+        return true;
+    }
+
+
     // Get transform the points to be fitted to base frame
     // TODO: Transform polynomial instead?
-    const size_t num_pts = std::min(20ul, _plan.first.size());
+    const size_t num_pts = std::min(20ul, px.size());
     assert(num_pts > poly_order);
     std::vector<double> plan_x_trans, plan_y_trans;
     plan_x_trans.resize(num_pts);
     plan_y_trans.resize(num_pts);
     for (int i = 0; i < num_pts; i++) {
-        double shift_x = _plan.first[i] - x;
-        double shift_y = _plan.second[i] - y;
+        const double shift_x = px[i] - x;
+        const double shift_y = py[i] - y;
         plan_x_trans[i] = shift_x * cos(-yaw) - shift_y * sin(-yaw);
         plan_y_trans[i] = shift_x * sin(-yaw) + shift_y * cos(-yaw);
-        //std::cout << _plan.first[i] << " " << _plan.second[i] << " " << plan_x_trans[i] << " " << plan_y_trans[i] << std::endl;
+        //std::cout << px[i] << " " << py[i] << " " << plan_x_trans[i] << " " << plan_y_trans[i] << std::endl;
     }
 
     // Fit transformed plan to a polynomial
@@ -217,40 +244,8 @@ bool MPC_Local_Planner::isGoalReached() {
         return false;
     }
 
-    ROS_INFO("Checking if goal reached");
-
-    double x, y;
-    try {
-        auto trans = _tf_buffer->lookupTransform(_costmap->getGlobalFrameID(), _costmap->getBaseFrameID(),
-                                                 ros::Time(0)).transform;
-        x = trans.translation.x;
-        y = trans.translation.y;
-    } catch (tf2::TransformException &e) {
-        ROS_ERROR("Can't get transform from %s to %s.", _costmap->getGlobalFrameID().c_str(),
-                  _costmap->getBaseFrameID().c_str());
-        return false; // TODO: Should this be true?
-    }
-
-    size_t i = 0;
-    auto &px = _plan.first;
-    auto &py = _plan.second;
-
-    for (; i < px.size() - 1; i++) {
-        // This is dot product of vector A-P and B-P
-        // Where P is current robot position,  A is _plan[i] and B is _plan[i+1]
-        if ((x - px[i]) * (px[i + 1] - px[i]) + (y - py[i]) * (py[i + 1] - py[i]) < 0) {
-            break; // i.e this point not crossed yet.
-        }
-    }
-    if (i > 0) {
-        px.erase(px.begin(), px.begin() + i);
-        py.erase(py.begin(), py.begin() + i);
-        ROS_INFO("Removed %lu points, now %lu", i, px.size());
-    }
-    // TODO: Reverse the vector so deletions from path dont require whole path to be copied. Switch to list if this matters
-
-    // return _plan.first.empty();
-    return _plan.first.size() <= 10; // poly_order; // TODO: Why we need such a large threshold
+    return _plan.first.empty();
+    //    return _plan.first.size() <= 10; // poly_order; // TODO: Why we need such a large threshold
 }
 
 void MPC_Local_Planner::publish_plan(const std::vector<std::pair<double, double>> &plan) {
