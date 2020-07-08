@@ -10,6 +10,10 @@
 PLUGINLIB_EXPORT_CLASS(mpc_local_planner::MPC_Local_Planner, nav_core::BaseLocalPlanner)
 
 
+inline double signum(double x) {
+    return (x > 0) - (x < 0);
+}
+
 // implement MPC_Local_Planner
 using namespace mpc_local_planner;
 
@@ -81,6 +85,7 @@ bool MPC_Local_Planner::setPlan(const std::vector<geometry_msgs::PoseStamped> &p
     for (const auto &pose : plan) {
         _plan.first.push_back(pose.pose.position.x);
         _plan.second.push_back(pose.pose.position.y);
+        // TODO : Not using theta !
     }
 
 
@@ -99,11 +104,13 @@ bool MPC_Local_Planner::computeVelocityCommands(geometry_msgs::Twist &cmd_vel) {
 
 
 
+
     auto time = ros::Time::now();
     const double dt = (time - _last_called).toSec();
     std::cout << 1 / dt << std::endl;
 
 
+    // TODO: Can we use transform from goal_reached ?
     // Get transform to base_frame from global frame
     double x, y, yaw;
     try {
@@ -123,7 +130,7 @@ bool MPC_Local_Planner::computeVelocityCommands(geometry_msgs::Twist &cmd_vel) {
     // Get transform the points to be fitted to base frame
     // TODO: Transform polynomial instead?
     const size_t num_pts = std::min(20ul, _plan.first.size());
-    assert(_plan.first.size() >= num_pts);
+    assert(num_pts > poly_order);
     std::vector<double> plan_x_trans, plan_y_trans;
     plan_x_trans.resize(num_pts);
     plan_y_trans.resize(num_pts);
@@ -152,13 +159,11 @@ bool MPC_Local_Planner::computeVelocityCommands(geometry_msgs::Twist &cmd_vel) {
     cout << std::endl << std::scientific;
 */
 
-
     // cte: 'Cross track error'
     double cte = coeffs(0); // polyeval(coeffs, 0);
     // etheta: 'Theta error' TODO: doesnt consider directionaity of path. i.e robot cannot uturn
-    double etheta = -atan(coeffs[1]);
+    double etheta = -atan2(coeffs[1], signum(plan_x_trans[0]));
     std::cout << cte << " " << etheta * 180 / mpc_lib::pi() << std::endl;
-
 
     mpc_lib::State s{};
     const double &v = _last_vel.linear.x;
@@ -213,7 +218,39 @@ bool MPC_Local_Planner::isGoalReached() {
     }
 
     ROS_INFO("Checking if goal reached");
-    return _plan.first.empty();
+
+    double x, y;
+    try {
+        auto trans = _tf_buffer->lookupTransform(_costmap->getGlobalFrameID(), _costmap->getBaseFrameID(),
+                                                 ros::Time(0)).transform;
+        x = trans.translation.x;
+        y = trans.translation.y;
+    } catch (tf2::TransformException &e) {
+        ROS_ERROR("Can't get transform from %s to %s.", _costmap->getGlobalFrameID().c_str(),
+                  _costmap->getBaseFrameID().c_str());
+        return false; // TODO: Should this be true?
+    }
+
+    size_t i = 0;
+    auto &px = _plan.first;
+    auto &py = _plan.second;
+
+    for (; i < px.size() - 1; i++) {
+        // This is dot product of vector A-P and B-P
+        // Where P is current robot position,  A is _plan[i] and B is _plan[i+1]
+        if ((x - px[i]) * (px[i + 1] - px[i]) + (y - py[i]) * (py[i + 1] - py[i]) < 0) {
+            break; // i.e this point not crossed yet.
+        }
+    }
+    if (i > 0) {
+        px.erase(px.begin(), px.begin() + i);
+        py.erase(py.begin(), py.begin() + i);
+        ROS_INFO("Removed %lu points, now %lu", i, px.size());
+    }
+    // TODO: Reverse the vector so deletions from path dont require whole path to be copied. Switch to list if this matters
+
+    // return _plan.first.empty();
+    return _plan.first.size() <= 10; // poly_order; // TODO: Why we need such a large threshold
 }
 
 void MPC_Local_Planner::publish_plan(const std::vector<std::pair<double, double>> &plan) {

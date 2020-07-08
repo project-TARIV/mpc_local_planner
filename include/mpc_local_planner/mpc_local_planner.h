@@ -44,6 +44,8 @@ namespace mpc_local_planner {
         double _accel{0};
         ros::Time _last_called; // or should i just use controller frequency?
 
+        const size_t poly_order = 3;
+
         // void reconfigureCB(DWAPlannerConfig &config, uint32_t level);
     };
 }
