@@ -39,6 +39,7 @@ void MPC_Local_Planner::initialize(std::string name, tf2_ros::Buffer *tf_buffer,
         ros::NodeHandle private_nh("~/" + name);
         mpc_ipopt::Params p{};
 
+        // TODO: Default params. Grab the function from line_lanes
         private_nh.getParam("wheel_dist", p.wheel_dist);
         wheel_dist = p.wheel_dist;
 
@@ -57,6 +58,7 @@ void MPC_Local_Planner::initialize(std::string name, tf2_ros::Buffer *tf_buffer,
         private_nh.getParam("limits/acc/high", p.limits.acc.high);
 
         private_nh.getParam("weights/cte", p.wt.cte);
+        private_nh.getParam("weights/etheta", p.wt.etheta);
         private_nh.getParam("weights/vel", p.wt.vel);
         private_nh.getParam("weights/acc", p.wt.acc);
         dt = 1.0 / p.forward.frequency;

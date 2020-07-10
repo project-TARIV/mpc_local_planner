@@ -19,6 +19,7 @@ MPC_Local_Planner:
     acc: {low: -0.5, high: 0.5}
 
   weights:
+    etheta: 1000
     cte: 500
     vel: 50
     acc: 1
