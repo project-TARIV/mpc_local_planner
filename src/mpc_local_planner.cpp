@@ -1,8 +1,9 @@
 #include "../include/mpc_local_planner/mpc_local_planner.h"
 #include <tf2/convert.h>
 #include <tf2/utils.h>
-#include <mpc_lib/utils.h>
 #include <nav_msgs/Path.h>
+
+#include "polyfit.h"
 
 
 #include <pluginlib/class_list_macros.h>
@@ -10,15 +11,16 @@
 PLUGINLIB_EXPORT_CLASS(mpc_local_planner::MPC_Local_Planner, nav_core::BaseLocalPlanner)
 
 
-inline double signum(double x) {
+/*inline double signum(double x) {
     return (x > 0) - (x < 0);
-}
+}//*/
 
 // implement MPC_Local_Planner
 using namespace mpc_local_planner;
 
-MPC_Local_Planner::MPC_Local_Planner() : _initialised{false}, _tf_buffer(nullptr), _costmap(nullptr), _mpc(),
-                                         _last_vel(), _pub() {
+MPC_Local_Planner::MPC_Local_Planner() : _initialised{false},
+                                         _tf_buffer(nullptr), _costmap(nullptr),
+                                         _vel(), _pub(), _mpc{nullptr} {
     ROS_INFO("Constructed Planner");
 }
 
@@ -35,34 +37,33 @@ void MPC_Local_Planner::initialize(std::string name, tf2_ros::Buffer *tf_buffer,
         _costmap = costmap;
 
         ros::NodeHandle private_nh("~/" + name);
+        mpc_ipopt::Params p{};
 
-//        _dsrv_ = new dynamic_reconfigure::Server<mpc_local_planner_config>(private_nh);
-//        dynamic_reconfigure::Server<mpc_local_planner_config>::CallbackType cb = boost::bind(&MPC_Local_Planner::reconfigureCB, this, _1, _2);
-//        _dsrv->setCallback(cb);
+        private_nh.getParam("wheel_dist", p.wheel_dist);
+        wheel_dist = p.wheel_dist;
 
-        // TODO: Do this better
-        private_nh.getParam("controller/timeSteps", _mpc.params.N);
-        private_nh.getParam("controller/sampleTime", _mpc.params.dt);
+        double tmp;
+        private_nh.getParam("timeSteps", tmp);
+        assert(tmp > 0);
+        p.forward.steps = (size_t) tmp;
 
-        private_nh.getParam("controller/reference/velocity", _mpc.params.ref_v);
-        private_nh.getParam("controller/reference/crossTrackError", _mpc.params.ref_cte);
-        private_nh.getParam("controller/reference/orientationError", _mpc.params.ref_etheta);
+        private_nh.getParam("frequency", p.forward.frequency);
 
-        private_nh.getParam("controller/maxBounds/maxOmega", _mpc.params.MAX_OMEGA);
-        private_nh.getParam("controller/maxBounds/maxThrottle", _mpc.params.MAX_THROTTLE);
+        private_nh.getParam("reference/velocity", p.v_ref);
 
-        private_nh.getParam("controller/weights/w_cte", _mpc.params.W_CTE);
-        private_nh.getParam("controller/weights/w_etheta", _mpc.params.W_ETHETA);
-        private_nh.getParam("controller/weights/w_vel", _mpc.params.W_VEL);
-        private_nh.getParam("controller/weights/w_omega", _mpc.params.W_OMEGA);
-        private_nh.getParam("controller/weights/w_acc", _mpc.params.W_ACC);
-        private_nh.getParam("controller/weights/w_omega_d", _mpc.params.W_OMEGA_D);
-        private_nh.getParam("controller/weights/w_acc_d", _mpc.params.W_ACC_D);
+        private_nh.getParam("limits/vel/low", p.limits.vel.low);
+        private_nh.getParam("limits/vel/high", p.limits.vel.high);
+        private_nh.getParam("limits/acc/low", p.limits.acc.low);
+        private_nh.getParam("limits/acc/high", p.limits.acc.high);
 
-        // Todo get velocity, dont assume 0
-        _accel = 0;
-        _last_vel = {};
-        _last_called = ros::Time::now();
+        private_nh.getParam("weights/cte", p.wt.cte);
+        private_nh.getParam("weights/vel", p.wt.vel);
+        private_nh.getParam("weights/acc", p.wt.acc);
+        dt = 1.0 / p.forward.frequency;
+        _mpc = std::make_unique<mpc_ipopt::MPC>(p);
+
+        // Todo get velocity,ca dont assume 0
+        _vel = {0, 0};
 
         _pub = private_nh.advertise<nav_msgs::Path>("path", 2);
         _initialised = true;
@@ -85,7 +86,7 @@ bool MPC_Local_Planner::setPlan(const std::vector<geometry_msgs::PoseStamped> &p
     for (const auto &pose : plan) {
         _plan.first.push_back(pose.pose.position.x);
         _plan.second.push_back(pose.pose.position.y);
-        // TODO : Not using theta !
+        // TODO : Pass orientation data to mpc
     }
 
 
@@ -99,10 +100,6 @@ bool MPC_Local_Planner::computeVelocityCommands(geometry_msgs::Twist &cmd_vel) {
         ROS_ERROR("This planner not initialized.");
         return false;
     }
-    auto time = ros::Time::now();
-    const double dt = (time - _last_called).toSec();
-    std::cout << 1 / dt << std::endl;
-
 
     // TODO: Can we use transform from goal_reached ?
     // Get transform to base_frame from global frame
@@ -126,7 +123,7 @@ bool MPC_Local_Planner::computeVelocityCommands(geometry_msgs::Twist &cmd_vel) {
 
 
     {
-        ROS_INFO("Checking if goal reached");
+//        z("Checking if goal reached");
         size_t i = 0;
 
         for (; i < px.size() - 1; i++) {
@@ -147,6 +144,8 @@ bool MPC_Local_Planner::computeVelocityCommands(geometry_msgs::Twist &cmd_vel) {
     if (px.size() <= 10 /* poly_order*/) {
         px.clear();
         py.clear();
+        // TODO: allow to coast through waypoints.
+        _vel = {0, 0};
         cmd_vel.linear.x = 0;
         cmd_vel.angular.z = 0;
         ROS_INFO("Goal Reached");
@@ -155,7 +154,7 @@ bool MPC_Local_Planner::computeVelocityCommands(geometry_msgs::Twist &cmd_vel) {
 
 
     // Get transform the points to be fitted to base frame
-    // TODO: Transform polynomial instead?
+    // TODO: Transform polynomial to robot frame
     const size_t num_pts = std::min(20ul, px.size());
     assert(num_pts > poly_order);
     std::vector<double> plan_x_trans, plan_y_trans;
@@ -170,13 +169,12 @@ bool MPC_Local_Planner::computeVelocityCommands(geometry_msgs::Twist &cmd_vel) {
     }
 
     // Fit transformed plan to a polynomial
-    Eigen::VectorXd coeffs = mpc_lib::polyfit(
+    Eigen::VectorXd coeffs = mpc_local_planner::polyfit(
             Eigen::Map<Eigen::VectorXd>(plan_x_trans.data(), num_pts), // std::min(num_pts, plan_x_trans.size())),
             Eigen::Map<Eigen::VectorXd>(plan_y_trans.data(), num_pts), //std::min(num_pts, plan_y_trans.size())),
             3);
 
 
-/*
     // Print polynomial in format easy to chuck into desmos
     using std::cout;
     cout << "poly" << coeffs.size() << std::endl << std::fixed;
@@ -184,56 +182,34 @@ bool MPC_Local_Planner::computeVelocityCommands(geometry_msgs::Twist &cmd_vel) {
         cout << " + " << coeffs(i) << "*x^" << i << " ";
     }
     cout << std::endl << std::scientific;
-*/
 
-    // cte: 'Cross track error'
-    double cte = coeffs(0); // polyeval(coeffs, 0);
-    // etheta: 'Theta error' TODO: doesnt consider directionaity of path. i.e robot cannot uturn
-    double etheta = -atan2(coeffs[1], signum(plan_x_trans[0]));
-    std::cout << cte << " " << etheta * 180 / mpc_lib::pi() << std::endl;
+    _mpc->state.x = (_vel.first + _vel.second) * dt / 2 * 1;
+    _mpc->state.y = (_vel.first + _vel.second) * dt / 2 * 0;
+    _mpc->state.theta = (_vel.first - _vel.second) * dt / wheel_dist;
+    _mpc->state.v_r = _vel.first;
+    _mpc->state.v_l = _vel.second;
 
-    mpc_lib::State s{};
-    const double &v = _last_vel.linear.x;
-    const double &omega = _last_vel.angular.z;
-
-    // TODO: Whats going on here?
-    s.x = v * dt;
-    s.y = 0;
-    s.theta = omega * dt;
-    s.v = v + _accel * dt;
-    s.cte = cte + v * sin(etheta) * dt; // Change in te required , i.e position?
-    s.etheta = etheta - s.theta; // Change in angle required
-/*
-    s.x = 0;
-    s.y = 0;
-    s.theta = 0;
-    s.v = _last_vel.linear.x;
-    s.cte = cte;
-    s.etheta = etheta;*/
+    _mpc->global_plan.clear();
+    _mpc->global_plan.resize(coeffs.size());
+    for (size_t i = 0; i < coeffs.size(); i++) {
+        _mpc->global_plan.push_back(coeffs[i]);
+    }
 
 
-    std::vector<double> mpc_solns;
-    mpc_lib::Result mpc_result;
-    /*if (!_mpc.solve(s, coeffs, mpc_result))
-        return false;*/
-    if (!_mpc.solve(s, coeffs, mpc_result, true))
+    std::pair<double, double> acc;
+    if (!_mpc->solve(acc))
         return false;
+    _vel.first += acc.first * dt;
+    _vel.second += acc.second * dt;
 
-
-    ROS_INFO("Cost: %f", mpc_result.cost);
-
-    cmd_vel.angular.z = mpc_result.omega;
-    _accel = mpc_result.acceleration;
-    cmd_vel.linear.x = v + _accel * dt;
+    cmd_vel.angular.z = (_vel.first - _vel.second) / wheel_dist;
+    cmd_vel.linear.x = (_vel.first + _vel.second) / 2;
 
     // Update velocity and time
-    _last_vel = cmd_vel;
-    _last_called = time;
-
-    _i++;
-    _i %= 20;
-    if (_i == 0)
-        publish_plan(mpc_result.plan);
+//    _i++;
+//    _i %= 20;
+//    if (_i == 0)
+//        publish_plan(mpc_result.plan);
 
     return true;
 }

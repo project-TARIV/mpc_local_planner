@@ -3,7 +3,8 @@
 
 #include <ros/ros.h>
 #include <nav_core/base_local_planner.h>
-#include <mpc_lib/mpc_lib.h>
+#include <mpc_ipopt/mpc.h>
+
 
 namespace mpc_local_planner {
     class MPC_Local_Planner : public nav_core::BaseLocalPlanner {
@@ -35,14 +36,12 @@ namespace mpc_local_planner {
         costmap_2d::Costmap2DROS *_costmap;
         ros::Publisher _pub;
 
-        mpc_lib::MPC _mpc;
-
+        std::unique_ptr<mpc_ipopt::MPC> _mpc;
+        double dt{0}, wheel_dist{1};
 
         std::pair<std::vector<double>, std::vector<double> > _plan;
 
-        geometry_msgs::Twist _last_vel;
-        double _accel{0};
-        ros::Time _last_called; // or should i just use controller frequency?
+        std::pair<double, double> _vel;
 
         const size_t poly_order = 3;
 

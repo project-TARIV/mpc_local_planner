@@ -9,7 +9,7 @@ project(mpc_local_planner)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
         roscpp
-        mpc_lib
+        mpc_ipopt
         nav_core
         nav_msgs
         )
@@ -96,7 +96,8 @@ catkin_package(
         INCLUDE_DIRS include
         LIBRARIES mpc_local_planner
         #  CATKIN_DEPENDS other_catkin_pkg
-        DEPENDS mpc_lib
+        DEPENDS mpc_ipopt
+
 )
 
 ###########
@@ -112,7 +113,7 @@ include_directories(
 ## Declare a C++ library
 add_library(${PROJECT_NAME}
         src/mpc_local_planner.cpp
-        )
+        src/polyfit.h)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
