@@ -207,7 +207,7 @@ bool MPC_Local_Planner::computeVelocityCommands(geometry_msgs::Twist &cmd_vel) {
     }
 
 
-    if (!_mpc->solve(mpc_result)) {
+    if (!_mpc->solve(mpc_result, _i == 0)) {
         std::cout << "IPOPT Failed: " << mpc_ipopt::MPC::error_string.at(mpc_result.status) << std::endl;
         return false;
     }
@@ -217,11 +217,13 @@ bool MPC_Local_Planner::computeVelocityCommands(geometry_msgs::Twist &cmd_vel) {
     cmd_vel.angular.z = (_vel.first - _vel.second) / wheel_dist;
     cmd_vel.linear.x = (_vel.first + _vel.second) / 2;
 
-    // Update velocity and time
-//    _i++;
-//    _i %= 20;
-//    if (_i == 0)
-//        publish_plan(mpc_result.plan);
+//     Update velocity and time
+    if (_i == 0)
+        publish_plan(mpc_result.path);
+    _i++;
+    _i %= 20;
+
+
 
 //    std::cout << "Iter took " << std::chrono::duration_cast<std::chrono::milliseconds>(
 //            std::chrono::high_resolution_clock::now() - start).count() << "ms." << std::endl; // < 1 ms used outside of mpc
@@ -238,7 +240,7 @@ bool MPC_Local_Planner::isGoalReached() {
     //    return _plan.first.size() <= 10; // poly_order; // TODO: Why we need such a large threshold
 }
 
-void MPC_Local_Planner::publish_plan(const std::vector<std::pair<double, double>> &plan) {
+void MPC_Local_Planner::publish_plan(const std::vector<mpc_ipopt::State> &plan) {
     /*if (!_pub)
         return;*/
     nav_msgs::Path path;
@@ -248,11 +250,13 @@ void MPC_Local_Planner::publish_plan(const std::vector<std::pair<double, double>
     geometry_msgs::PoseStamped pose;
     pose.header.stamp = ros::Time::now();
     pose.header.frame_id = _costmap->getBaseFrameID();
-    pose.pose.orientation.w = 1;
+    
+    for (const auto &s : plan) {
+        pose.pose.position.x = s.x;
+        pose.pose.position.y = s.y;
 
-    for (const auto &point : plan) {
-        pose.pose.position.x = point.first;
-        pose.pose.position.y = point.second;
+        pose.pose.orientation.z = cos(s.theta);
+        pose.pose.orientation.w = sin(s.theta);
 
         path.poses.emplace_back(pose);
     }

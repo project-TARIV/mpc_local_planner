@@ -27,7 +27,7 @@ namespace mpc_local_planner {
         }
 
     private:
-        void publish_plan(const std::vector<std::pair<double, double>> &plan);
+        void publish_plan(const std::vector<mpc_ipopt::State> &plan);
 
         bool _initialised;
         unsigned int _i{0};
