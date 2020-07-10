@@ -2,14 +2,14 @@ base_global_planner: global_planner/GlobalPlanner
 base_local_planner: mpc_local_planner/MPC_Local_Planner
 
 planner_frequency: 0
-controller_frequency: 20
+controller_frequency: 10
 
 MPC_Local_Planner:
 
   wheel_dist: 0.65
 
-  timeSteps: 20
-  frequency: 20
+  timeSteps: 15
+  frequency: 20 # Timesteps per second
 
   reference:
     velocity: 1

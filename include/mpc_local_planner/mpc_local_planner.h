@@ -37,7 +37,9 @@ namespace mpc_local_planner {
         ros::Publisher _pub;
 
         std::unique_ptr<mpc_ipopt::MPC> _mpc;
-        double dt{0}, wheel_dist{1};
+        mpc_ipopt::MPC::Result mpc_result;
+
+        double dt{0.1}, wheel_dist{1};
 
         std::pair<std::vector<double>, std::vector<double> > _plan;
 

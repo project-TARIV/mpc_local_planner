@@ -5,6 +5,7 @@
 
 #include "polyfit.h"
 
+#include <chrono>
 
 #include <pluginlib/class_list_macros.h>
 
@@ -61,8 +62,14 @@ void MPC_Local_Planner::initialize(std::string name, tf2_ros::Buffer *tf_buffer,
         private_nh.getParam("weights/etheta", p.wt.etheta);
         private_nh.getParam("weights/vel", p.wt.vel);
         private_nh.getParam("weights/acc", p.wt.acc);
-        dt = 1.0 / p.forward.frequency;
         _mpc = std::make_unique<mpc_ipopt::MPC>(p);
+
+        /*
+        double freq;
+        ros::NodeHandle("~/").getParam("controller_frequency", freq);
+        dt = 1.0 / freq;
+        //*/
+        dt = 150.0e-3; // 150 ms Get this from profiling
 
         // Todo get velocity,ca dont assume 0
         _vel = {0, 0};
@@ -102,6 +109,7 @@ bool MPC_Local_Planner::computeVelocityCommands(geometry_msgs::Twist &cmd_vel) {
         ROS_ERROR("This planner not initialized.");
         return false;
     }
+//    const auto start = std::chrono::high_resolution_clock::now(); // < 1 ms used outside of mpc
 
     // TODO: Can we use transform from goal_reached ?
     // Get transform to base_frame from global frame
@@ -178,12 +186,13 @@ bool MPC_Local_Planner::computeVelocityCommands(geometry_msgs::Twist &cmd_vel) {
 
 
     // Print polynomial in format easy to chuck into desmos
-    using std::cout;
+    /*using std::cout;
     cout << "poly" << coeffs.size() << std::endl << std::fixed;
     for (int i = 0; i < coeffs.size(); i++) {
         cout << " + " << coeffs(i) << "*x^" << i << " ";
     }
     cout << std::endl << std::scientific;
+     //*/
 
     _mpc->state.x = (_vel.first + _vel.second) * dt / 2 * 1;
     _mpc->state.y = (_vel.first + _vel.second) * dt / 2 * 0;
@@ -198,11 +207,12 @@ bool MPC_Local_Planner::computeVelocityCommands(geometry_msgs::Twist &cmd_vel) {
     }
 
 
-    std::pair<double, double> acc;
-    if (!_mpc->solve(acc))
+    if (!_mpc->solve(mpc_result)) {
+        std::cout << "IPOPT Failed: " << mpc_ipopt::MPC::error_string.at(mpc_result.status) << std::endl;
         return false;
-    _vel.first += acc.first * dt;
-    _vel.second += acc.second * dt;
+    }
+    _vel.first += mpc_result.acc.first * dt;
+    _vel.second += mpc_result.acc.second * dt;
 
     cmd_vel.angular.z = (_vel.first - _vel.second) / wheel_dist;
     cmd_vel.linear.x = (_vel.first + _vel.second) / 2;
@@ -213,6 +223,8 @@ bool MPC_Local_Planner::computeVelocityCommands(geometry_msgs::Twist &cmd_vel) {
 //    if (_i == 0)
 //        publish_plan(mpc_result.plan);
 
+//    std::cout << "Iter took " << std::chrono::duration_cast<std::chrono::milliseconds>(
+//            std::chrono::high_resolution_clock::now() - start).count() << "ms." << std::endl; // < 1 ms used outside of mpc
     return true;
 }
 
