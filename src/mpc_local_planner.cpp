@@ -12,9 +12,9 @@
 PLUGINLIB_EXPORT_CLASS(mpc_local_planner::MPC_Local_Planner, nav_core::BaseLocalPlanner)
 
 
-/*inline double signum(double x) {
+inline double signum(double x) {
     return (x > 0) - (x < 0);
-}//*/
+}
 
 // implement MPC_Local_Planner
 using namespace mpc_local_planner;
@@ -206,6 +206,8 @@ bool MPC_Local_Planner::computeVelocityCommands(geometry_msgs::Twist &cmd_vel) {
         _mpc->global_plan.push_back(coeffs[i]);
     }
 
+    _mpc->directionality = signum(plan_x_trans[0]);
+
 
     if (!_mpc->solve(mpc_result, _i == 0)) {
         std::cout << "IPOPT Failed: " << mpc_ipopt::MPC::error_string.at(mpc_result.status) << std::endl;
@@ -250,7 +252,7 @@ void MPC_Local_Planner::publish_plan(const std::vector<mpc_ipopt::State> &plan) 
     geometry_msgs::PoseStamped pose;
     pose.header.stamp = ros::Time::now();
     pose.header.frame_id = _costmap->getBaseFrameID();
-    
+
     for (const auto &s : plan) {
         pose.pose.position.x = s.x;
         pose.pose.position.y = s.y;

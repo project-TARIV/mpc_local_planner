@@ -15,8 +15,8 @@ MPC_Local_Planner:
     velocity: 1
 
   limits:
-    vel: {low: -1, high: 1}
-    acc: {low: -0.5, high: 0.5}
+    vel: {low: -2, high: 2}
+    acc: {low: -1, high: 1}
 
   weights:
     etheta: 1000
