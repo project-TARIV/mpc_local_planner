@@ -22,6 +22,7 @@ MPC_Local_Planner:
     etheta: 1000
     cte: 500
     vel: 50
+    omega: 10
     acc: 1
 
 

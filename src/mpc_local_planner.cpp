@@ -63,6 +63,7 @@ void MPC_Local_Planner::initialize(std::string name, tf2_ros::Buffer *tf_buffer,
             private_nh.getParam("weights/cte", p.wt.cte);
             private_nh.getParam("weights/etheta", p.wt.etheta);
             private_nh.getParam("weights/vel", p.wt.vel);
+            private_nh.getParam("weights/omega", p.wt.omega);
             private_nh.getParam("weights/acc", p.wt.acc);
         }
 
