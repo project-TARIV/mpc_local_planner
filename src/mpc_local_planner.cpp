@@ -40,7 +40,7 @@ void MPC_Local_Planner::initialize(std::string name, tf2_ros::Buffer *tf_buffer,
 
         ros::NodeHandle private_nh("~/" + name);
         // TODO: Warn on missing param
-        mpc_ipopt::Params p{};
+        mpc_lib::Params p{};
 
         /* Get Parameter values */ {
             private_nh.getParam("wheel_dist", p.wheel_dist);
@@ -67,7 +67,7 @@ void MPC_Local_Planner::initialize(std::string name, tf2_ros::Buffer *tf_buffer,
             private_nh.getParam("weights/acc", p.wt.acc);
         }
 
-        _mpc = std::make_unique<mpc_ipopt::MPC>(p);
+        _mpc = std::make_unique<mpc_lib::MPC>(p);
 
 
         // dt should be the length of one iteration of getCmdVel
@@ -208,7 +208,7 @@ bool MPC_Local_Planner::computeVelocityCommands(geometry_msgs::Twist &cmd_vel) {
 
 
     if (!_mpc->solve(mpc_result, _i == 0)) {
-        std::cout << "IPOPT Failed: " << mpc_ipopt::MPC::error_string.at(mpc_result.status) << std::endl;
+        std::cout << "IPOPT Failed: " << mpc_lib::MPC::error_string.at(mpc_result.status) << std::endl;
         return false;
     }
     // MPC finds acc based on its own dt, use that.
@@ -258,7 +258,7 @@ bool MPC_Local_Planner::isGoalReached() {
     return _plan.first.empty();
 }
 
-void MPC_Local_Planner::publish_plan(const std::vector<mpc_ipopt::State> &plan) {
+void MPC_Local_Planner::publish_plan(const std::vector<mpc_lib::State> &plan) {
     /*if (!_pub)
         return;*/
     nav_msgs::Path path;

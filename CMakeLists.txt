@@ -9,7 +9,7 @@ project(mpc_local_planner)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
         roscpp
-        mpc_ipopt
+        mpc_lib
         nav_core
         nav_msgs
         )
@@ -96,7 +96,7 @@ catkin_package(
         INCLUDE_DIRS include
         LIBRARIES mpc_local_planner
         #  CATKIN_DEPENDS other_catkin_pkg
-        DEPENDS mpc_ipopt
+        DEPENDS mpc_lib
 
 )
 

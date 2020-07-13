@@ -3,7 +3,7 @@
 
 #include <ros/ros.h>
 #include <nav_core/base_local_planner.h>
-#include <mpc_ipopt/mpc.h>
+#include <mpc_lib/mpc.h>
 
 
 namespace mpc_local_planner {
@@ -29,7 +29,7 @@ namespace mpc_local_planner {
     private:
         bool get_trans(double &x, double &y, double &yaw) const;
 
-        void publish_plan(const std::vector<mpc_ipopt::State> &plan);
+        void publish_plan(const std::vector<mpc_lib::State> &plan);
 
         bool _initialised;
         unsigned int _i{0};
@@ -40,8 +40,8 @@ namespace mpc_local_planner {
         ros::Publisher _pub;
 
         // mpc_lib things
-        std::unique_ptr<mpc_ipopt::MPC> _mpc;
-        mpc_ipopt::MPC::Result mpc_result;
+        std::unique_ptr<mpc_lib::MPC> _mpc;
+        mpc_lib::MPC::Result mpc_result;
 
         // Params
         double dt{0.1}, mpc_dt{0.1}, wheel_dist{1};
