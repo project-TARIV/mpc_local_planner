@@ -27,25 +27,41 @@ namespace mpc_local_planner {
         }
 
     private:
+        bool get_trans(double &x, double &y, double &yaw) const;
+
         void publish_plan(const std::vector<mpc_ipopt::State> &plan);
 
         bool _initialised;
         unsigned int _i{0};
 
-        tf2_ros::Buffer *_tf_buffer;
-        costmap_2d::Costmap2DROS *_costmap;
+        // ROS Things
+        tf2_ros::Buffer *_tf_buffer{nullptr};
+        costmap_2d::Costmap2DROS *_costmap{nullptr};
         ros::Publisher _pub;
 
+        // mpc_lib things
         std::unique_ptr<mpc_ipopt::MPC> _mpc;
         mpc_ipopt::MPC::Result mpc_result;
 
-        double dt{0.1}, wheel_dist{1};
+        // Params
+        double dt{0.1}, mpc_dt{0.1}, wheel_dist{1};
+        const size_t poly_order = 3;
 
+        /*
+         * dt vs mpc_dt:
+         *
+         * We pass mpc the state that the robot is expected to have when the velocity calculation is finished
+         * `dt` is used to estimate that. i.e dt === time
+         *
+         * mpc_dt is the timeinterval mpc uses to forward simulate.
+         * We use this to calculate the velocity from the calculated acceleration
+         * TODO: Should mpc directly give velocity?
+         */
+
+        // State
         std::pair<std::vector<double>, std::vector<double> > _plan;
 
-        std::pair<double, double> _vel;
-
-        const size_t poly_order = 3;
+        std::pair<double, double> _vel{0, 0};
 
         // void reconfigureCB(DWAPlannerConfig &config, uint32_t level);
     };

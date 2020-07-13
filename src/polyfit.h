@@ -5,7 +5,7 @@
 #include <eigen3/Eigen/QR>
 
 namespace mpc_local_planner {
-    Eigen::VectorXd polyfit(Eigen::VectorXd xvals, Eigen::VectorXd yvals, int order) {
+    Eigen::VectorXd polyfit(const Eigen::VectorXd &xvals, const Eigen::VectorXd &yvals, int order) {
         assert(xvals.size() == yvals.size());
         assert(order >= 1 && order <= xvals.size() - 1);
         Eigen::MatrixXd A(xvals.size(), order + 1);
