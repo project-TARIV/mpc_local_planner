@@ -2,6 +2,7 @@
 #include <tf2/convert.h>
 #include <tf2/utils.h>
 #include <nav_msgs/Path.h>
+#include <virat_msgs/Polynomial.h>
 #include "polyfit.h"
 
 #include <chrono>
@@ -77,7 +78,10 @@ void MPC_Local_Planner::initialize(std::string name, tf2_ros::Buffer *tf_buffer,
         // Todo get velocity,ca dont assume 0
         _vel = {0, 0};
 
-        _pub = private_nh.advertise<nav_msgs::Path>("path", 2);
+        _path_pub = std::make_unique<ros::Publisher>(private_nh.advertise<nav_msgs::Path>("path", 2));
+        _global_plan_pub = std::make_unique<ros::Publisher>(
+                private_nh.advertise<virat_msgs::Polynomial>("global_plan", 2));
+
         _initialised = true;
     } else {
         ROS_WARN("Already initialised, doing nothing.");
@@ -176,6 +180,13 @@ bool MPC_Local_Planner::computeVelocityCommands(geometry_msgs::Twist &cmd_vel) {
             Eigen::Map<Eigen::VectorXd>(plan_x_trans.data(), num_pts), // std::min(num_pts, plan_x_trans.size())),
             Eigen::Map<Eigen::VectorXd>(plan_y_trans.data(), num_pts), //std::min(num_pts, plan_y_trans.size())),
             3);
+
+    virat_msgs::Polynomial p;
+    p.header.stamp = ros::Time::now();
+    p.header.frame_id = _costmap->getGlobalFrameID();
+    p.coeffs = {coeffs[0], coeffs[1], coeffs[2]};
+    _global_plan_pub->publish(p);
+    std::cout << "Published!" << std::endl;
 
 
     // Print polynomial in format easy to copy into desmos
@@ -279,5 +290,5 @@ void MPC_Local_Planner::publish_plan(const std::vector<mpc_lib::State> &plan) {
         path.poses.emplace_back(pose);
     }
 
-    _pub.publish(path);
+    _path_pub->publish(path);
 }

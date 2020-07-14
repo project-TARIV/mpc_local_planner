@@ -12,6 +12,8 @@ find_package(catkin REQUIRED COMPONENTS
         mpc_lib
         nav_core
         nav_msgs
+
+        virat_msgs
         )
 
 find_package(Eigen3 3.3 REQUIRED)

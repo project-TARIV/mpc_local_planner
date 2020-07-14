@@ -18,6 +18,8 @@
     <depend>nav_msgs</depend>
     <depend>mpc_lib</depend>
 
+    <depend>virat_msgs</depend>
+
 
     <!-- The export tag contains other, unspecified, tags -->
     <export>

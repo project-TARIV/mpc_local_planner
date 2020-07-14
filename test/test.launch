@@ -18,5 +18,16 @@
         <rosparam command="load" file="$(find mpc_local_planner)/test/move_base.yaml"/>
     </node>
 
+    <node name="poly_view" pkg="virat_msgs" type="poly_view">
+        <!--        <rosparam param="topics">["/move_base/MPC_Local_Planner/global_plan"]</rosparam>-->
+        <rosparam>
+            names: ["global_plan"]
+            global_plan:
+                topic: "/move_base/MPC_Local_Planner/global_plan"
+                color: [ 0.5, 0.5, 0.0, 0.5 ]
+                scale: 0.1
+        </rosparam>
+    </node>
+
     <node name="rviz" pkg="rviz" type="rviz" args="-d $(find mpc_local_planner)/test/test.rviz"/>
 </launch>
