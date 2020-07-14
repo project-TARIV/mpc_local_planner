@@ -162,7 +162,7 @@ bool MPC_Local_Planner::computeVelocityCommands(geometry_msgs::Twist &cmd_vel) {
 
     // Get transform the points to be fitted to base frame
     // TODO: Transform polynomial to robot frame
-    const size_t num_pts = std::min(20ul, px.size());
+    const size_t num_pts = std::min(40ul, px.size());
     assert(num_pts > poly_order);
     std::vector<double> plan_x_trans, plan_y_trans;
     plan_x_trans.resize(num_pts);
@@ -231,9 +231,9 @@ bool MPC_Local_Planner::computeVelocityCommands(geometry_msgs::Twist &cmd_vel) {
 
     if (_i == 0)
         publish_plan(mpc_result.path);
-    _i++;
-    _i %= 20;
-
+    /*_i++;
+    _i %= 20;*/
+    _i = 0;
 
 //    std::cout << "Iter took " << std::chrono::duration_cast<std::chrono::milliseconds>(
 //            std::chrono::high_resolution_clock::now() - start).count() << "ms." << std::endl; // < 1 ms used outside of mpc
