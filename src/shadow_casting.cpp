@@ -13,7 +13,7 @@ const double del = 1e-5;
 
 void shadow_cast(IsBlocked is_blocked, AddPoint add_point, double m_start, double m_end,
                  const int i, const int i_max, const int j_max) {
-    if (i > i_max) {
+    if (i >= i_max) {
         return;
     }
     if (m_start < m_end + del) {
@@ -22,7 +22,7 @@ void shadow_cast(IsBlocked is_blocked, AddPoint add_point, double m_start, doubl
 
     bool in_block = true;
 
-    const int j_start = std::min((int) std::floor(m_start * (i + 0.5) + 0.5 - del), j_max);
+    const int j_start = std::min((int) std::floor(m_start * (i + 0.5) + 0.5 - del), j_max - 1);
     const int j_end = (int) std::ceil(m_end * (i - 0.5) - 0.5 + del);
 
     if (j_start < j_end) {

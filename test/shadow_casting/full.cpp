@@ -4,9 +4,31 @@
 
 #include <vector>
 #include <iostream>
-#include <algorithm>
 
-#include "../src/shadow_casting.h"
+#include "../../src/shadow_casting.h"
+
+const size_t size = 20;
+
+
+void do_quad(bool board[][size], const size_t cx, const size_t cy,
+             std::vector<std::pair<int, int>> &points, int dir_1, int dir_2) {
+    shadow_cast(
+            [&board, cx, cy, dir_1, dir_2](int i, int j) {
+                return board[cx + dir_1 * i][cy + dir_2 * j];
+            },
+            [&points, cx, cy, dir_1, dir_2](int i, int j) {
+                points.emplace_back(cx + dir_1 * i, cy + dir_2 * j);
+            },
+            1, 0, 1, size / 2, size / 2);
+    shadow_cast(
+            [&board, cx, cy, dir_1, dir_2](int i, int j) {
+                return board[cx + dir_1 * j][cy + dir_2 * i];
+            },
+            [&points, cx, cy, dir_1, dir_2](int i, int j) {
+                points.emplace_back(cx + dir_1 * j, cy + dir_2 * i);
+            },
+            1, 0, 1, size / 2, size / 2);
+}
 
 int main() {
     // python: print(',\n'.join([ '{' + ', '.join('0' for j in range(10)) +'}' for i in range(10)]))
@@ -27,7 +49,6 @@ int main() {
             {0, 0, 0, 0, 1, 0, 0, 0, 0, 0}
     };*/
 
-    const size_t size = 20;
     bool board[size][size] = {
             {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0},
             {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0},
@@ -51,28 +72,15 @@ int main() {
             {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0},
     };
 
+    const size_t cx = size / 2;
+    const size_t cy = size / 2;
+
     std::vector<std::pair<int, int>> points;
 
-    // Lower triangle
-    shadow_cast(
-            [&board](int i, int j) {
-                return board[i][j];
-            },
-            [&points](int i, int j) {
-                points.emplace_back(i, j);
-            },
-            1, 0, 1, size, size);
-
-    // Upper triangle, mirror of lower triangle
-    shadow_cast(
-            [&board](int i, int j) {
-                return board[j][i];
-            },
-            [&points](int i, int j) {
-                points.emplace_back(j, i);
-            },
-            1, 0, 1, size, size);
-
+    do_quad(board, cx, cy, points, 1, 1);
+    do_quad(board, cx, cy, points, 1, -1);
+    do_quad(board, cx, cy, points, -1, -1);
+    do_quad(board, cx, cy, points, -1, 1);
 
     std::cout << points.size() << " outline points." << std::endl;
     std::cout << "'@' is the robot." << std::endl;
@@ -86,12 +94,12 @@ int main() {
             output[i][j] = board[i][j] ? '=' : '.';
         }
     }
-    output[0][0] = '@';
+    output[cx][cy] = '@';
 
-    const bool int_print = true;
+    const bool letter_print = false;
     int index = 0;
     for (const auto &[i, j] : points) {
-        output[i][j] = !int_print ? '#' : 'A' + index;
+        output[i][j] = !letter_print ? '#' : 'A' + index;
         index++; // index %= 26;
     }
 
