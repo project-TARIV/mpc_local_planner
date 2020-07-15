@@ -180,15 +180,6 @@ bool MPC_Local_Planner::computeVelocityCommands(geometry_msgs::Twist &cmd_vel) {
             Eigen::Map<Eigen::VectorXd>(plan_x_trans.data(), num_pts), // std::min(num_pts, plan_x_trans.size())),
             Eigen::Map<Eigen::VectorXd>(plan_y_trans.data(), num_pts), //std::min(num_pts, plan_y_trans.size())),
             3);
-
-    virat_msgs::Polynomial p;
-    p.header.stamp = ros::Time::now();
-    p.header.frame_id = _costmap->getGlobalFrameID();
-    p.coeffs = {coeffs[0], coeffs[1], coeffs[2]};
-    _global_plan_pub->publish(p);
-    std::cout << "Published!" << std::endl;
-
-
     // Print polynomial in format easy to copy into desmos
     /*using std::cout;
     cout << "poly" << coeffs.size() << std::endl << std::fixed;
@@ -197,6 +188,16 @@ bool MPC_Local_Planner::computeVelocityCommands(geometry_msgs::Twist &cmd_vel) {
     }
     cout << std::endl << std::scientific;
      //*/
+
+    virat_msgs::Polynomial p;
+    p.header.stamp = ros::Time::now();
+    p.header.frame_id = _costmap->getGlobalFrameID();
+    p.coeffs = {coeffs[0], coeffs[1], coeffs[2]};
+    _global_plan_pub->publish(p);
+    std::cout << "Published!" << std::endl;
+
+    // TODO: Fit theta values from plan into a polynomial and use that !
+
 
     // Pass estimated state at the end
     _mpc->state.x = (_vel.first + _vel.second) * dt / 2 * 1; // 1 <= cos(theta)
@@ -213,8 +214,12 @@ bool MPC_Local_Planner::computeVelocityCommands(geometry_msgs::Twist &cmd_vel) {
         _mpc->global_plan.push_back(coeffs[i]);
     }
 
+    /*unsigned int mx, my;
+    _costmap->getCostmap()->worldToMap(x, y, mx, my);
+    std::cout << mx << " " << my << " " << _costmap->getCostmap()->getSizeInCellsX() << " "
+              << _costmap->getCostmap()->getSizeInCellsY() << std::endl;*/
 
-    // TODO: Fit theta values from plan into a polynomial and use that !
+
     _mpc->directionality = signum(plan_x_trans[0]);
 
 
@@ -222,6 +227,7 @@ bool MPC_Local_Planner::computeVelocityCommands(geometry_msgs::Twist &cmd_vel) {
         std::cout << "IPOPT Failed: " << mpc_lib::MPC::error_string.at(mpc_result.status) << std::endl;
         return false;
     }
+
     // MPC finds acc based on its own dt, use that.
     _vel.first += mpc_result.acc.first * mpc_dt;
     _vel.second += mpc_result.acc.second * mpc_dt;
