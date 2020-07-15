@@ -125,8 +125,7 @@ add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EX
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(shadow_test test/shadow_casting/quadrant.cpp src/shadow_casting.cpp)
-add_executable(full_shadow_test test/shadow_casting/full.cpp src/shadow_casting.cpp)
+add_executable(shadow_test test/shadowcast_test.cpp src/shadow_casting.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -137,7 +136,6 @@ add_executable(full_shadow_test test/shadow_casting/full.cpp src/shadow_casting.
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 add_dependencies(shadow_test ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-add_dependencies(full_shadow_test ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(${PROJECT_NAME}
@@ -146,9 +144,6 @@ target_link_libraries(${PROJECT_NAME}
         )
 
 target_link_libraries(shadow_test
-        ${catkin_LIBRARIES}
-        )
-target_link_libraries(full_shadow_test
         ${catkin_LIBRARIES}
         )
 
