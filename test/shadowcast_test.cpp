@@ -85,7 +85,7 @@ int main() {
     int index = 0;
     for (const auto &[i, j] : points) {
         output[i][j] = !letter_print ? '#' : 'A' + index;
-        std::cout << i << " " << j << "_" << (char) ('A' + index) << std::endl;
+        // std::cout << i << " " << j << "_" << (char) ('A' + index) << std::endl;
         index++; // index %= 26;
     }
 
