@@ -4,10 +4,12 @@
 #include <nav_msgs/Path.h>
 #include <virat_msgs/Polynomial.h>
 #include "polyfit.h"
+#include "shadow_casting.h"
 
 #include <chrono>
 
 #include <pluginlib/class_list_macros.h>
+#include <nav_msgs/GridCells.h>
 
 PLUGINLIB_EXPORT_CLASS(mpc_local_planner::MPC_Local_Planner, nav_core::BaseLocalPlanner)
 
@@ -79,6 +81,7 @@ void MPC_Local_Planner::initialize(std::string name, tf2_ros::Buffer *tf_buffer,
         _vel = {0, 0};
 
         _path_pub = std::make_unique<ros::Publisher>(private_nh.advertise<nav_msgs::Path>("path", 2));
+        _grid_pub = std::make_unique<ros::Publisher>(private_nh.advertise<nav_msgs::GridCells>("outline", 2));
         _global_plan_pub = std::make_unique<ros::Publisher>(
                 private_nh.advertise<virat_msgs::Polynomial>("global_plan", 2));
 
@@ -129,8 +132,7 @@ bool MPC_Local_Planner::computeVelocityCommands(geometry_msgs::Twist &cmd_vel) {
     auto &py = _plan.second;
 
 
-    {
-//        z("Checking if goal reached");
+    /* Check if goal reached */{
         size_t i = 0;
 
         for (; i < px.size() - 1; i++) {
@@ -161,7 +163,6 @@ bool MPC_Local_Planner::computeVelocityCommands(geometry_msgs::Twist &cmd_vel) {
 
 
     // Get transform the points to be fitted to base frame
-    // TODO: Transform polynomial to robot frame
     const size_t num_pts = std::min(40ul, px.size());
     assert(num_pts > poly_order);
     std::vector<double> plan_x_trans, plan_y_trans;
@@ -180,6 +181,13 @@ bool MPC_Local_Planner::computeVelocityCommands(geometry_msgs::Twist &cmd_vel) {
             Eigen::Map<Eigen::VectorXd>(plan_x_trans.data(), num_pts), // std::min(num_pts, plan_x_trans.size())),
             Eigen::Map<Eigen::VectorXd>(plan_y_trans.data(), num_pts), //std::min(num_pts, plan_y_trans.size())),
             3);
+
+    // Set global plan coefficients
+    _mpc->global_plan.clear();
+    _mpc->global_plan.resize(coeffs.size());
+    for (size_t i = 0; i < coeffs.size(); i++) {
+        _mpc->global_plan.push_back(coeffs[i]);
+    }
     // Print polynomial in format easy to copy into desmos
     /*using std::cout;
     cout << "poly" << coeffs.size() << std::endl << std::fixed;
@@ -207,12 +215,6 @@ bool MPC_Local_Planner::computeVelocityCommands(geometry_msgs::Twist &cmd_vel) {
     _mpc->state.v_l = _vel.second;
 
 
-    // Set global plan coefficients
-    _mpc->global_plan.clear();
-    _mpc->global_plan.resize(coeffs.size());
-    for (size_t i = 0; i < coeffs.size(); i++) {
-        _mpc->global_plan.push_back(coeffs[i]);
-    }
 
     /*unsigned int mx, my;
     _costmap->getCostmap()->worldToMap(x, y, mx, my);
@@ -222,6 +224,36 @@ bool MPC_Local_Planner::computeVelocityCommands(geometry_msgs::Twist &cmd_vel) {
 
     _mpc->directionality = signum(plan_x_trans[0]);
 
+    nav_msgs::GridCells grid;
+    grid.header.frame_id = _costmap->getGlobalFrameID();
+    grid.header.stamp = ros::Time::now();
+    grid.cell_height = _costmap->getCostmap()->getResolution();
+    grid.cell_width = _costmap->getCostmap()->getResolution();
+    auto cp = _costmap->getCostmap();
+    double ssx, ssy; // Coordinates of the origin of the costmap
+    cp->mapToWorld(0, 0, ssx, ssy);
+    // Indices of the origin of costmap in the grid_cells
+    const int sx = (int) (ssx / cp->getResolution()), sy = (int) (ssy / cp->getResolution());
+    // Indices of robot in the costmap
+    unsigned int I, J;
+    cp->worldToMap(x, y, I, J);
+    ROS_ERROR("Starting shadow cast");
+    shadow_cast([&cp, &I, &J](int i, int j) {
+                    auto cost = (unsigned int) cp->getCost(I + i, J + j);
+                    return cost > 200;
+                },
+                [&grid, &I, &J, &sx, &sy](int i, int j) {
+                    geometry_msgs::Point p;
+                    p.x = sx + I + i;
+                    p.y = sy + J + j;
+                    p.z = 0;
+                    grid.cells.push_back(p);
+                },
+                (int) (2.0 / _costmap->getCostmap()->getResolution())
+    );
+
+    ROS_ERROR("Done cast, %lu", grid.cells.size());
+    _grid_pub->publish(grid);
 
     if (!_mpc->solve(mpc_result, _i == 0)) {
         std::cout << "IPOPT Failed: " << mpc_lib::MPC::error_string.at(mpc_result.status) << std::endl;
@@ -248,7 +280,7 @@ bool MPC_Local_Planner::computeVelocityCommands(geometry_msgs::Twist &cmd_vel) {
 
 // Gets transformation from global frame to robot frame, i.e robot position.
 // @return success ( bool )
-bool MPC_Local_Planner::get_trans(double &x, double &y, double &yaw) const {
+/*bool MPC_Local_Planner::get_trans(double &x, double &y, double &yaw) const {
     try {
         auto trans = _tf_buffer->lookupTransform(_costmap->getGlobalFrameID(), _costmap->getBaseFrameID(),
                                                  ros::Time(0)).transform;
@@ -264,6 +296,20 @@ bool MPC_Local_Planner::get_trans(double &x, double &y, double &yaw) const {
                   _costmap->getGlobalFrameID().c_str(), _costmap->getBaseFrameID().c_str());
         return false;
     }
+}*/
+bool MPC_Local_Planner::get_trans(double &x, double &y, double &yaw) const {
+    geometry_msgs::PoseStamped pose;
+    if (!_costmap->getRobotPose(pose))
+        return false;
+
+    x = pose.pose.position.x;
+    y = pose.pose.position.y;
+
+    double _roll, _pitch;
+    tf2::Matrix3x3(tf2::Quaternion{pose.pose.orientation.x, pose.pose.orientation.y,
+                                   pose.pose.orientation.z, pose.pose.orientation.w}).getRPY(_roll, _pitch, yaw);
+
+    return true;
 }
 
 bool MPC_Local_Planner::isGoalReached() {
