@@ -37,8 +37,8 @@ namespace mpc_local_planner {
         // ROS Things
         tf2_ros::Buffer *_tf_buffer{nullptr};
         costmap_2d::Costmap2DROS *_costmap{nullptr};
-        std::unique_ptr<ros::Publisher> _path_pub, _global_plan_pub, _grid_pub;
-
+        std::unique_ptr<ros::Publisher> _path_pub, _global_plan_pub;
+        std::array<std::unique_ptr<ros::Publisher>, 5> _poly_pubs;
         // mpc_lib things
         std::unique_ptr<mpc_lib::MPC> _mpc;
         mpc_lib::MPC::Result mpc_result;

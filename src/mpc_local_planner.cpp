@@ -81,9 +81,12 @@ void MPC_Local_Planner::initialize(std::string name, tf2_ros::Buffer *tf_buffer,
         _vel = {0, 0};
 
         _path_pub = std::make_unique<ros::Publisher>(private_nh.advertise<nav_msgs::Path>("path", 2));
-        _grid_pub = std::make_unique<ros::Publisher>(private_nh.advertise<nav_msgs::GridCells>("outline", 2));
         _global_plan_pub = std::make_unique<ros::Publisher>(
                 private_nh.advertise<virat_msgs::Polynomial>("global_plan", 2));
+        for (size_t i = 0; i < _poly_pubs.size(); i++) {
+            _poly_pubs[i] = std::make_unique<ros::Publisher>(
+                    private_nh.advertise<virat_msgs::Polynomial>("polys/poly" + std::to_string(i), 2));
+        }
 
         _initialised = true;
     } else {
@@ -224,36 +227,99 @@ bool MPC_Local_Planner::computeVelocityCommands(geometry_msgs::Twist &cmd_vel) {
 
     _mpc->directionality = signum(plan_x_trans[0]);
 
-    nav_msgs::GridCells grid;
-    grid.header.frame_id = _costmap->getGlobalFrameID();
-    grid.header.stamp = ros::Time::now();
-    grid.cell_height = _costmap->getCostmap()->getResolution();
-    grid.cell_width = _costmap->getCostmap()->getResolution();
-    auto cp = _costmap->getCostmap();
-    double ssx, ssy; // Coordinates of the origin of the costmap
-    cp->mapToWorld(0, 0, ssx, ssy);
-    // Indices of the origin of costmap in the grid_cells
-    const int sx = (int) (ssx / cp->getResolution()), sy = (int) (ssy / cp->getResolution());
-    // Indices of robot in the costmap
-    unsigned int I, J;
-    cp->worldToMap(x, y, I, J);
-    ROS_ERROR("Starting shadow cast");
-    shadow_cast([&cp, &I, &J](int i, int j) {
-                    auto cost = (unsigned int) cp->getCost(I + i, J + j);
-                    return cost > 200;
-                },
-                [&grid, &I, &J, &sx, &sy](int i, int j) {
-                    geometry_msgs::Point p;
-                    p.x = sx + I + i;
-                    p.y = sy + J + j;
-                    p.z = 0;
-                    grid.cells.push_back(p);
-                },
-                (int) (2.0 / _costmap->getCostmap()->getResolution())
-    );
+    std::vector<std::vector<double>> polys;
 
-    ROS_ERROR("Done cast, %lu", grid.cells.size());
-    _grid_pub->publish(grid);
+    auto cp = _costmap->getCostmap();
+    unsigned int cx, cy;
+    cp->worldToMap(x, y, cx, cy);
+
+    std::vector<std::pair<int, int>> points;
+    ROS_ERROR("Starting shadow cast");
+    shadow_cast(
+            [&cp, &cx, &cy](int i, int j) {
+                return ((unsigned int) cp->getCost(cx + i, cy + j)) > 200;
+            },
+            [&points, &cx, &cy](int i, int j) {
+                points.emplace_back(cx + i, cy + j);
+            },
+            (int) (2.0 / _costmap->getCostmap()->getResolution())
+    );
+    std::cout << "Obstacle points: " << points.size() << std::endl;
+
+
+    if (points.size() > 3) {
+        std::vector<size_t> split_pts;
+
+        auto &prev = points.back();
+
+        for (size_t i = 0; i < points.size() - 1; i++) {
+            const auto &cur = points[i];
+            if ((std::abs(cur.first - prev.first) + std::abs(cur.second - prev.second)) > 3) {
+                split_pts.push_back(i);
+            }
+            prev = cur;
+        }
+        if (!split_pts.empty()) {
+            points.reserve(points.size() + split_pts.front());
+            //std::copy(points.begin(), points.begin() + split_pts.front(), std::back_inserter(points));
+            points.insert(points.end(), points.begin(), points.begin() + split_pts.front());
+            std::cout << "Obstacle points: " << points.size() << std::endl;
+
+            std::cout << "Section sizes: ";
+            split_pts.push_back(points.size());
+            for (int i = 0; i < split_pts.size() - 1; i++) {
+                std::cout << split_pts[i + 1] - split_pts[i] << " ";
+            }
+            std::cout << std::endl;
+
+            std::cout << "Section indices: ";
+            split_pts.push_back(points.size());
+            for (unsigned long split_pt : split_pts) {
+                std::cout << split_pt << " ";
+            }
+            std::cout << std::endl;
+        }
+
+        std::vector<double> pts_x, pts_y;
+        pts_x.resize(points.size());
+        pts_y.resize(points.size());
+        for (int i = split_pts[0]; i < points.size(); i++) {
+            double xx, yy;
+            cp->mapToWorld(points[i].first, points[i].second, xx, yy);
+            const double shift_x = xx - x;
+            const double shift_y = yy - y;
+            pts_x[i] = shift_x * cos(-yaw) - shift_y * sin(-yaw);
+            pts_y[i] = shift_x * sin(-yaw) + shift_y * cos(-yaw);
+        }
+
+        std::cout << "Fitting" << std::endl;
+        for (int i = 0; i < split_pts.size() - 1; i++) {
+            const auto pts_in_obstacle = split_pts[i + 1] - split_pts[i];
+            if (pts_in_obstacle > 3) {
+                std::cout << pts_x.size() << "aaa" << i << std::endl;
+                std::cout << split_pts[i] << " " << split_pts[i + 1] << std::endl;
+                Eigen::VectorXd poly_coeffs = mpc_local_planner::polyfit(
+                        Eigen::Map<Eigen::VectorXd>(pts_x.data() + split_pts[i], pts_in_obstacle),
+                        Eigen::Map<Eigen::VectorXd>(pts_y.data(), pts_in_obstacle),
+                        3);
+                polys.emplace_back();
+                polys.back() = {poly_coeffs[0], poly_coeffs[1], poly_coeffs[2]};
+            }
+        }
+        std::cout << "Num polys: " << polys.size();
+    }
+
+    p.header.stamp = ros::Time::now();
+    p.header.frame_id = _costmap->getGlobalFrameID();
+    size_t i = 0;
+    for (const auto &poly: polys) {
+
+        p.coeffs = {poly[0], poly[1], poly[2]};
+        _poly_pubs[i]->publish(p);
+        i++;
+        if (i > _poly_pubs.size())
+            break;
+    }
 
     if (!_mpc->solve(mpc_result, _i == 0)) {
         std::cout << "IPOPT Failed: " << mpc_lib::MPC::error_string.at(mpc_result.status) << std::endl;

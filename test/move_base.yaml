@@ -21,7 +21,7 @@ MPC_Local_Planner:
   weights:
     etheta: 1000
     cte: 500
-    vel: 50
+    vel: 10
     omega: 10
     acc: 1
 
