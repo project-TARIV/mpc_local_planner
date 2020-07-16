@@ -35,7 +35,8 @@ void shadow_cast_octent(const IsBlocked &is_blocked, const AddPoint &add_point,
     while (--j >= j_end) {
         if (in_block) {
             if (is_blocked(i, j)) {
-                add_point(i, j);
+                if (i >= j) // HACK: I dont know why we are getting some incorrect points
+                    add_point(i, j);
                 m_start = (j - 0.5) / (i + 0.5);
             } else {
                 in_block = false;
@@ -47,7 +48,8 @@ void shadow_cast_octent(const IsBlocked &is_blocked, const AddPoint &add_point,
                 const double _m_end = (j) / (i - 0.5); // m_end for recursive section
                 shadow_cast_octent(is_blocked, add_point, m_start, _m_end, i + 1, i_max, j_max, 0);
 
-                add_point(i, j);
+                if (i >= j) // HACK: I dont know why we are getting some incorrect points
+                    add_point(i, j);
                 m_start = (j - 0.5) / (i + 0.5);
             }
         }
