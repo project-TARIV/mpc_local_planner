@@ -183,12 +183,12 @@ Visualization Manager:
       Class: rviz/Map
       Color Scheme: costmap
       Draw Behind: false
-      Enabled: false
+      Enabled: true
       Name: Map
       Topic: /move_base/GlobalPlanner/potential
       Unreliable: false
       Use Timestamp: false
-      Value: false
+      Value: true
     - Alpha: 1
       Buffer Length: 1
       Class: rviz/Path
@@ -255,7 +255,7 @@ Visualization Manager:
       Marker Topic: /move_base/MPC_Local_Planner/polys/poly0/rviz
       Name: Marker
       Namespaces:
-        {}
+        poly0: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -263,7 +263,7 @@ Visualization Manager:
       Marker Topic: /move_base/MPC_Local_Planner/polys/poly1/rviz
       Name: Marker
       Namespaces:
-        {}
+        poly1: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -271,7 +271,7 @@ Visualization Manager:
       Marker Topic: /move_base/MPC_Local_Planner/polys/poly2/rviz
       Name: Marker
       Namespaces:
-        {}
+        poly2: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -279,7 +279,7 @@ Visualization Manager:
       Marker Topic: /move_base/MPC_Local_Planner/polys/poly3/rviz
       Name: Marker
       Namespaces:
-        {}
+        poly3: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -287,7 +287,7 @@ Visualization Manager:
       Marker Topic: /move_base/MPC_Local_Planner/polys/poly4/rviz
       Name: Marker
       Namespaces:
-        {}
+        poly4: true
       Queue Size: 100
       Value: true
   Enabled: true
@@ -327,7 +327,7 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 38.3313102722168
+      Scale: 23.405113220214844
       Target Frame: <Fixed Frame>
       Value: TopDownOrtho (rviz)
       X: 0

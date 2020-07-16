@@ -31,9 +31,11 @@ namespace mpc_local_planner {
 
         void publish_plan(const std::vector<mpc_lib::State> &plan);
 
-        bool _initialised;
-        unsigned int _i{0};
+        std::vector<std::vector<double>> getObstacles() const;
 
+        bool _initialised;
+
+        unsigned int _i{0};
         // ROS Things
         tf2_ros::Buffer *_tf_buffer{nullptr};
         costmap_2d::Costmap2DROS *_costmap{nullptr};
@@ -41,10 +43,11 @@ namespace mpc_local_planner {
         std::array<std::unique_ptr<ros::Publisher>, 5> _poly_pubs;
         // mpc_lib things
         std::unique_ptr<mpc_lib::MPC> _mpc;
-        mpc_lib::MPC::Result mpc_result;
 
+        mpc_lib::MPC::Result mpc_result;
         // Params
         double dt{0.1}, mpc_dt{0.1}, wheel_dist{1};
+
         const size_t poly_order = 3;
 
         /*
