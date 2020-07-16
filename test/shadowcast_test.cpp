@@ -51,6 +51,7 @@ int main() {
             {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0},
     };
 
+
     const size_t cx = size / 2;
     const size_t cy = size / 2;
 
