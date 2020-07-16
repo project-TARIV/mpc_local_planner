@@ -10,7 +10,7 @@
  * Based on 'http://www.roguebasin.com/index.php?title=FOV_using_recursive_shadowcasting'
  */
 
-void shadow_cast_octent(IsBlocked is_blocked, AddPoint add_point,
+void shadow_cast_octent(const IsBlocked &is_blocked, const AddPoint &add_point,
                         double m_start, double m_end,
                         const int i, const int i_max,
                         const int j_max, const double del) {
@@ -43,7 +43,8 @@ void shadow_cast_octent(IsBlocked is_blocked, AddPoint add_point,
         } else {
             if (is_blocked(i, j)) {
                 in_block = true;
-                const double _m_end = (j + 0.5) / (i - 0.5); // m_end for recursive section
+                //const double _m_end = (j + 0.5) / (i - 0.5); // m_end for recursive section
+                const double _m_end = (j) / (i - 0.5); // m_end for recursive section
                 shadow_cast_octent(is_blocked, add_point, m_start, _m_end, i + 1, i_max, j_max, 0);
 
                 add_point(i, j);
@@ -57,32 +58,79 @@ void shadow_cast_octent(IsBlocked is_blocked, AddPoint add_point,
 }
 
 void shadow_cast_quad(const std::pair<int, int> dir,
-                      IsBlocked is_blocked, AddPoint add_point,
+                      const IsBlocked &is_blocked, const AddPoint &add_point,
                       const int max_index, const double del) {
-    shadow_cast_octent(
-            [&is_blocked, &dir](int i, int j) {
-                return is_blocked(dir.first * i, dir.second * j);
-            },
-            [&add_point, &dir](int i, int j) {
-                add_point(dir.first * i, dir.second * j);
-            },
-            1, 0, 1,
-            max_index, max_index, del);
-    shadow_cast_octent(
-            [&is_blocked, &dir](int i, int j) {
-                return is_blocked(dir.first * j, dir.second * i);
-            },
-            [&add_point, &dir](int i, int j) {
-                add_point(dir.first * j, dir.second * i);
-            },
-            1, 0, 1,
-            max_index, max_index, del);
+
+    const auto parity = dir.first * dir.second;
+
+    if (parity == 1) {
+        // Normal Octent
+        std::vector<std::pair<int, int>> pts;
+        shadow_cast_octent(
+                [&is_blocked, &dir](int i, int j) {
+                    return is_blocked(dir.first * i, dir.second * j);
+                },
+                [&pts, &dir](int i, int j) {
+                    if (j != 0 && i != j)
+                        pts.emplace_back(dir.first * i, dir.second * j);
+                },
+                1, 0, 1,
+                max_index, max_index, del);
+
+        for (auto i = pts.rbegin(); i != pts.rend(); ++i) {
+            add_point(i->first, i->second);
+        }
+        // Mirrored octent
+
+        shadow_cast_octent(
+                [&is_blocked, &dir](int i, int j) {
+                    return is_blocked(dir.first * j, dir.second * i);
+                },
+                [&add_point, &dir](int i, int j) {
+                    add_point(dir.first * j, dir.second * i);
+                },
+                1, 0, 1,
+                max_index, max_index, del);
+
+    } else if (parity == -1) {
+        // Flip order to go counter clockwise
+        std::vector<std::pair<int, int>> pts;
+        // Mirrored octent
+        shadow_cast_octent(
+                [&is_blocked, &dir](int i, int j) {
+                    return is_blocked(dir.first * j, dir.second * i);
+                },
+                [&pts, &dir](int i, int j) {
+                    if (j != 0 && i != j)
+                        pts.emplace_back(dir.first * j, dir.second * i);
+                },
+                1, 0, 1,
+                max_index, max_index, del);
+
+        for (auto i = pts.rbegin(); i != pts.rend(); ++i) {
+            add_point(i->first, i->second);
+        }
+        // Normal Octent
+        shadow_cast_octent(
+                [&is_blocked, &dir](int i, int j) {
+                    return is_blocked(dir.first * i, dir.second * j);
+                },
+                [&add_point, &dir](int i, int j) {
+                    add_point(dir.first * i, dir.second * j);
+                },
+                1, 0, 1,
+                max_index, max_index, del);
+
+    } else {
+        // ERROR!
+    }
 }
 
-void shadow_cast(IsBlocked is_blocked, AddPoint add_point,
+void shadow_cast(const IsBlocked &is_blocked, const AddPoint &add_point,
                  const int max_index, const double del) {
+    // Rotate through quadrants counter-clockwise
     shadow_cast_quad({1, 1}, is_blocked, add_point, max_index, del);
-    shadow_cast_quad({1, -1}, is_blocked, add_point, max_index, del);
-    shadow_cast_quad({-1, -1}, is_blocked, add_point, max_index, del);
     shadow_cast_quad({-1, 1}, is_blocked, add_point, max_index, del);
+    shadow_cast_quad({-1, -1}, is_blocked, add_point, max_index, del);
+    shadow_cast_quad({1, -1}, is_blocked, add_point, max_index, del);
 }
