@@ -1,59 +1,26 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
-    <include file="$(find virat_run)/launch/helper/gazebo.launch">
-        <arg name="gui" value="0"/>
-    </include>
+    <include file="$(find virat_gazebo)/launch/world.launch"/>
 
-    <param name="robot_description" command="cat $(find virat_run)/urdf/virat.urdf"/>
+    <arg name="name" default="virat"/>
 
-    <include file="$(find virat_run)/launch/helper/spawn.launch">
-        <arg name="name" value="bot"/>
-        <arg name="x" value="1"/>
-        <arg name="y" value="0"/>
-    </include>
+    <param name="$(arg name)/tf_prefix" value="$(arg name)"/>
+    <group ns="$(arg name)">
+        <include file="$(find virat_gazebo)/launch/virat.launch">
+            <arg name="y" value="-18"/>
+        </include>
 
-    <node name="map_to_odom_transform" pkg="tf2_ros" type="static_transform_publisher" args="0 0 0 0 0 0 map odom"/>
+        <node name="map_to_odom_transform" pkg="tf" type="static_transform_publisher"
+              args="0 0 0 0 0 0 1 /map odom 100"/>
 
-    <node pkg="move_base" type="move_base" name="move_base" output="screen">
-        <rosparam command="load" file="$(find mpc_local_planner)/test/move_base.yaml"/>
-    </node>
+        <node pkg="move_base" type="move_base" name="move_base" output="screen">
+            <rosparam command="load" file="$(find mpc_local_planner)/test/move_base.yaml"/>
+        </node>
 
-    <node name="poly_view" pkg="virat_msgs" type="poly_view">
-        <!--        <rosparam param="topics">["/move_base/MPC_Local_Planner/global_plan"]</rosparam>-->
-        <rosparam>
-            names: ["global_plan", "poly1", "poly2", "poly3", "poly4", "poly0" ]
-            global_plan:
-                topic: "/move_base/MPC_Local_Planner/global_plan"
-                color: [ 0.5, 0.5, 0.0, 0.5 ]
-                scale: 0.1
+        <node name="poly_view" pkg="virat_msgs" type="poly_view">
+            <rosparam command="load" file="$(find mpc_local_planner)/test/poly_view.yaml"/>
+        </node>
 
-            poly0:
-                topic: "/move_base/MPC_Local_Planner/polys/poly0"
-                color: [ 0.0, 0.5, 0.5, 0.5 ]
-                scale: 0.1
-
-            poly1:
-                topic: "/move_base/MPC_Local_Planner/polys/poly1"
-                color: [ 0.0, 0.5, 0.5, 0.5 ]
-                scale: 0.1
-
-            poly2:
-                topic: "/move_base/MPC_Local_Planner/polys/poly2"
-                color: [ 0.0, 0.5, 0.5, 0.5 ]
-                scale: 0.1
-
-            poly3:
-                topic: "/move_base/MPC_Local_Planner/polys/poly3"
-                color: [ 0.0, 0.5, 0.5, 0.5 ]
-                scale: 0.1
-
-            poly4:
-                topic: "/move_base/MPC_Local_Planner/polys/poly4"
-                color: [ 0.0, 0.5, 0.5, 0.5 ]
-                scale: 0.1
-
-        </rosparam>
-    </node>
-
-    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find mpc_local_planner)/test/test.rviz"/>
+        <node name="rviz" pkg="rviz" type="rviz" args="-d $(find mpc_local_planner)/test/test.rviz"/>
+    </group>
 </launch>
