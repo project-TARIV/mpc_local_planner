@@ -10,10 +10,10 @@
  * Based on 'http://www.roguebasin.com/index.php?title=FOV_using_recursive_shadowcasting'
  */
 
-void shadow_cast_octent(const IsBlocked &is_blocked, const AddPoint &add_point,
-                        double m_start, double m_end,
-                        const int i, const int i_max,
-                        const int j_max, const double del) {
+void shadow_cast_octet(const IsBlocked &is_blocked, const AddPoint &add_point,
+                       double m_start, double m_end,
+                       const int i, const int i_max,
+                       const int j_max, const double del) {
     // assert( 0 <= m_end < m_start <= 1);
     if (i >= i_max) {
         return;
