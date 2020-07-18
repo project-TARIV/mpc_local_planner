@@ -42,7 +42,7 @@ global_costmap:
 
   obstacle_layer:
     observation_sources: laser_distance_sensor
-    laser_distance_sensor: {sensor_frame: laser_link, data_type: LaserScan, topic: scan, marking: true, clearing: true, obstacle_range: 4.5, raytrace_range: 4.5}
+    laser_distance_sensor: {sensor_frame: laser_link, data_type: LaserScan, topic: scan, marking: true, clearing: true, obstacle_range: 4.5, raytrace_range: 4.5, observation_persistence: 5.0}
   footprint: [[0.85,0], [0.75,0.15], [0.15, 0.28], [0.15, 0.34], [-0.08, 0.34], [-0.15, 0.26], [-0.15, -0.26], [-0.08, -0.34], [0.15, -0.34], [0.15, -0.28], [0.75,-0.15]]
   footprint_padding: 0.05
 
@@ -57,4 +57,4 @@ local_costmap:
     - {name: obstacle_layer, type: "costmap_2d::ObstacleLayer"}
   obstacle_layer:
     observation_sources: laser_distance_sensor
-    laser_distance_sensor: {sensor_frame: laser_link, data_type: LaserScan, topic: scan, marking: true, clearing: true, obstacle_range: 4.5, raytrace_range: 4.5}
+    laser_distance_sensor: {sensor_frame: laser_link, data_type: LaserScan, topic: scan, marking: true, clearing: true, obstacle_range: 4.5, raytrace_range: 4.5, observation_persistence: 5.0}
