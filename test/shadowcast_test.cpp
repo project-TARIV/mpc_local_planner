@@ -55,7 +55,7 @@ int main() {
     const size_t cx = size / 2;
     const size_t cy = size / 2;
 
-    std::vector<std::pair<int, int>> points;
+    std::vector <std::pair<int, int>> points;
 
     shadow_cast(
             [&board, cx, cy](int i, int j) {

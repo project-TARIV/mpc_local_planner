@@ -12,31 +12,31 @@
 
 void shadow_cast_octet(const IsBlocked &is_blocked, const AddPoint &add_point,
                        double m_start, double m_end,
-                       const int i, const int i_max,
-                       const int j_max, const double del) {
-    // assert( 0 <= m_end < m_start <= 1);
-    if (i >= i_max) {
-        return;
-    }
-    if (m_start < m_end + del) {
-        return;
-    }
+                       const int i, const int max_dist,
+                       const double del) {
 
+    if (i >= max_dist) return;
+
+    if (m_start < m_end + del) return;
+
+    // Was the prev i,j blocked
     bool in_block = true;
 
-    const int j_start = std::min((int) std::floor(m_start * (i + 0.5) + 0.5 - del), j_max - 1);
-    const int j_end = (int) std::ceil(m_end * (i - 0.5) - 0.5 + del);
+    // Find j indices and bind them within reasonable range
+    const int j_start = std::min((int) std::floor(m_start * (i + 0.5) + 0.5 - del), max_dist - i);
+    const int j_end = std::max((int) std::ceil(m_end * (i - 0.5) - 0.5 + del), 0);
 
-    if (j_start < j_end) {
-        return;
-    }
+    assert(j_start < j_end); // Redundant with m_start < m_end
 
     int j = j_start + 1; // + 1 compensates for
+    // TODO: I dont know why +1 ^^^^^^^
     while (--j >= j_end) {
         if (in_block) {
             if (is_blocked(i, j)) {
+                // Is a boundary of an obstacle
                 if (i >= j) // HACK: I dont know why we are getting some incorrect points
                     add_point(i, j);
+
                 m_start = (j - 0.5) / (i + 0.5);
             } else {
                 in_block = false;
@@ -44,9 +44,10 @@ void shadow_cast_octet(const IsBlocked &is_blocked, const AddPoint &add_point,
         } else {
             if (is_blocked(i, j)) {
                 in_block = true;
+                // An open area just ended, so need to start shadow casting for that region
                 //const double _m_end = (j + 0.5) / (i - 0.5); // m_end for recursive section
                 const double _m_end = (j) / (i - 0.5); // m_end for recursive section
-                shadow_cast_octent(is_blocked, add_point, m_start, _m_end, i + 1, i_max, j_max, 0);
+                shadow_cast_octet(is_blocked, add_point, m_start, _m_end, i + 1, max_dist, del);
 
                 if (i >= j) // HACK: I dont know why we are getting some incorrect points
                     add_point(i, j);
@@ -54,21 +55,23 @@ void shadow_cast_octet(const IsBlocked &is_blocked, const AddPoint &add_point,
             }
         }
     }
-    if (!in_block) {
-        shadow_cast_octent(is_blocked, add_point, m_start, m_end, i + 1, i_max, j_max, 0);
+
+    if (!in_block) { // Check if an open area was left hanging
+        // Shadow cast for it
+        shadow_cast_octet(is_blocked, add_point, m_start, m_end, i + 1, max_dist, del);
     }
 }
 
 void shadow_cast_quad(const std::pair<int, int> dir,
                       const IsBlocked &is_blocked, const AddPoint &add_point,
-                      const int max_index, const double del) {
+                      const int max_dist, const double del) {
 
     const auto parity = dir.first * dir.second;
 
     if (parity == 1) {
         // Normal Octent
-        std::vector<std::pair<int, int>> pts;
-        shadow_cast_octent(
+        std::vector <std::pair<int, int>> pts;
+        shadow_cast_octet(
                 [&is_blocked, &dir](int i, int j) {
                     return is_blocked(dir.first * i, dir.second * j);
                 },
@@ -77,14 +80,16 @@ void shadow_cast_quad(const std::pair<int, int> dir,
                         pts.emplace_back(dir.first * i, dir.second * j);
                 },
                 1, 0, 1,
-                max_index, max_index, del);
+                max_dist, del);
 
         for (auto i = pts.rbegin(); i != pts.rend(); ++i) {
             add_point(i->first, i->second);
         }
-        // Mirrored octent
 
-        shadow_cast_octent(
+
+        // Mirrored octent
+        // i.e just swap the i and j co-oridnates
+        shadow_cast_octet(
                 [&is_blocked, &dir](int i, int j) {
                     return is_blocked(dir.first * j, dir.second * i);
                 },
@@ -92,13 +97,13 @@ void shadow_cast_quad(const std::pair<int, int> dir,
                     add_point(dir.first * j, dir.second * i);
                 },
                 1, 0, 1,
-                max_index, max_index, del);
+                max_dist, del);
 
     } else if (parity == -1) {
         // Flip order to go counter clockwise
-        std::vector<std::pair<int, int>> pts;
+        std::vector <std::pair<int, int>> pts;
         // Mirrored octent
-        shadow_cast_octent(
+        shadow_cast_octet(
                 [&is_blocked, &dir](int i, int j) {
                     return is_blocked(dir.first * j, dir.second * i);
                 },
@@ -107,13 +112,16 @@ void shadow_cast_quad(const std::pair<int, int> dir,
                         pts.emplace_back(dir.first * j, dir.second * i);
                 },
                 1, 0, 1,
-                max_index, max_index, del);
+                max_dist, del);
 
+        // Add the points in reverse order, i.e ccw around the robot
         for (auto i = pts.rbegin(); i != pts.rend(); ++i) {
             add_point(i->first, i->second);
         }
+
+
         // Normal Octent
-        shadow_cast_octent(
+        shadow_cast_octet(
                 [&is_blocked, &dir](int i, int j) {
                     return is_blocked(dir.first * i, dir.second * j);
                 },
@@ -121,7 +129,7 @@ void shadow_cast_quad(const std::pair<int, int> dir,
                     add_point(dir.first * i, dir.second * j);
                 },
                 1, 0, 1,
-                max_index, max_index, del);
+                max_dist, del);
 
     } else {
         // ERROR!

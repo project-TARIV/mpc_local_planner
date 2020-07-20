@@ -4,15 +4,16 @@
 #include <ros/ros.h>
 #include <nav_core/base_local_planner.h>
 #include <mpc_lib/mpc.h>
-
+#include <vector>
 
 namespace mpc_local_planner {
+
     class MPC_Local_Planner : public nav_core::BaseLocalPlanner {
 
     public:
         void initialize(std::string name, tf2_ros::Buffer *tf_buffer, costmap_2d::Costmap2DROS *costmap);
 
-        bool setPlan(const std::vector<geometry_msgs::PoseStamped> &plan);
+        bool setPlan(const std::vector <geometry_msgs::PoseStamped> &plan);
 
         bool computeVelocityCommands(geometry_msgs::Twist &cmd_vel);
 
@@ -29,9 +30,9 @@ namespace mpc_local_planner {
     private:
         bool get_trans(double &x, double &y, double &yaw) const;
 
-        void publish_plan(const std::vector<mpc_lib::State> &plan);
+        void publish_plan(const std::vector <mpc_lib::State> &plan);
 
-        std::vector<std::vector<double>> getObstacles() const;
+        std::vector <std::vector<double>> getObstacles() const;
 
         bool _initialised;
 
@@ -39,10 +40,10 @@ namespace mpc_local_planner {
         // ROS Things
         tf2_ros::Buffer *_tf_buffer{nullptr};
         costmap_2d::Costmap2DROS *_costmap{nullptr};
-        std::unique_ptr<ros::Publisher> _path_pub, _global_plan_pub;
+        std::unique_ptr <ros::Publisher> _path_pub, _global_plan_pub;
         std::array<std::unique_ptr<ros::Publisher>, 5> _poly_pubs;
         // mpc_lib things
-        std::unique_ptr<mpc_lib::MPC> _mpc;
+        std::unique_ptr <mpc_lib::MPC> _mpc;
 
         mpc_lib::MPC::Result mpc_result;
         // Params
@@ -62,7 +63,7 @@ namespace mpc_local_planner {
          */
 
         // State
-        std::pair<std::vector<double>, std::vector<double> > _plan;
+        std::pair <std::vector<double>, std::vector<double>> _plan;
 
         std::pair<double, double> _vel{0, 0};
 

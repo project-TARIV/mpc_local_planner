@@ -11,7 +11,8 @@
 #include <pluginlib/class_list_macros.h>
 #include <nav_msgs/GridCells.h>
 
-PLUGINLIB_EXPORT_CLASS(mpc_local_planner::MPC_Local_Planner, nav_core::BaseLocalPlanner)
+PLUGINLIB_EXPORT_CLASS(mpc_local_planner::MPC_Local_Planner, nav_core::BaseLocalPlanner
+)
 
 
 // simple signum from math
@@ -95,7 +96,7 @@ void MPC_Local_Planner::initialize(std::string name, tf2_ros::Buffer *tf_buffer,
 }
 
 // Convert plan to a pair of vectors with x and y
-bool MPC_Local_Planner::setPlan(const std::vector<geometry_msgs::PoseStamped> &plan) {
+bool MPC_Local_Planner::setPlan(const std::vector <geometry_msgs::PoseStamped> &plan) {
     if (!isInitialized()) {
         ROS_ERROR("This planner not initialized.");
         return false;
@@ -227,7 +228,7 @@ bool MPC_Local_Planner::computeVelocityCommands(geometry_msgs::Twist &cmd_vel) {
 
     _mpc->directionality = signum(plan_x_trans[0]);
 
-    std::vector<std::vector<double>> polys = getObstacles();
+    std::vector <std::vector<double>> polys = getObstacles();
 
 
     p.header.stamp = ros::Time::now();
@@ -271,11 +272,11 @@ bool MPC_Local_Planner::computeVelocityCommands(geometry_msgs::Twist &cmd_vel) {
     return true;
 }
 
-std::vector<std::vector<double>> MPC_Local_Planner::getObstacles() const {
+std::vector <std::vector<double>> MPC_Local_Planner::getObstacles() const {
     double x, y, yaw;
     if (!get_trans(x, y, yaw)) return {};
 
-    std::vector<std::vector<double>> polynomials;
+    std::vector <std::vector<double>> polynomials;
 
     auto cp = _costmap->getCostmap();
 
@@ -285,7 +286,7 @@ std::vector<std::vector<double>> MPC_Local_Planner::getObstacles() const {
     cp->worldToMap(x, y, cx, cy);
 
     // The costmap co-ordinates of obstacle_points
-    std::vector<std::pair<int, int>> points;
+    std::vector <std::pair<int, int>> points;
     shadow_cast(
             [&cp, &cx, &cy](int i, int j) {
                 return ((unsigned int) cp->getCost(cx + i, cy + j)) > 200;
@@ -293,7 +294,7 @@ std::vector<std::vector<double>> MPC_Local_Planner::getObstacles() const {
             [&points, &cx, &cy](int i, int j) {
                 points.emplace_back(cx + i, cy + j);
             },
-            (int) (4.0 / _costmap->getCostmap()->getResolution())
+            (int) (6.0 / _costmap->getCostmap()->getResolution())
     );
     std::cout << "Obstacle points: " << points.size() << std::endl;
 
@@ -302,7 +303,7 @@ std::vector<std::vector<double>> MPC_Local_Planner::getObstacles() const {
         return {};
 
 
-    std::vector<size_t> split_points;
+    std::vector <size_t> split_points;
 
 
     // Find gaps between obstacles i.e split_points
@@ -319,7 +320,7 @@ std::vector<std::vector<double>> MPC_Local_Planner::getObstacles() const {
     if (split_points.empty())
         return {};
 
-    // The obstacle points are arranged circularily around the robot, but vector has a start and end.
+    // The obstacle points are arranged circularly around the robot, but vector has a start and end.
     // We make sure that the obstacle points belonging to one obstacle remain together
     // The obstacle which has some points at the end and some at the start is completely shifted to the front
     // Now we ignore the first split_pts[0] points as it is moved to the end
@@ -415,7 +416,7 @@ bool MPC_Local_Planner::isGoalReached() {
     return _plan.first.empty();
 }
 
-void MPC_Local_Planner::publish_plan(const std::vector<mpc_lib::State> &plan) {
+void MPC_Local_Planner::publish_plan(const std::vector <mpc_lib::State> &plan) {
     /*if (!_pub)
         return;*/
     nav_msgs::Path path;
