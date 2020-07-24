@@ -26,7 +26,7 @@ void shadow_cast_octet(const IsBlocked &is_blocked, const AddPoint &add_point,
     const int j_start = std::min((int) std::floor(m_start * (i + 0.5) + 0.5 - del), max_dist - i);
     const int j_end = std::max((int) std::ceil(m_end * (i - 0.5) - 0.5 + del), 0);
 
-    assert(j_start < j_end); // Redundant with m_start < m_end
+    if (j_start < j_end) return;
 
     int j = j_start + 1; // + 1 compensates for
     // TODO: I dont know why +1 ^^^^^^^
