@@ -294,7 +294,8 @@ std::vector <std::vector<double>> MPC_Local_Planner::getObstacles() const {
             [&points, &cx, &cy](int i, int j) {
                 points.emplace_back(cx + i, cy + j);
             },
-            (int) (6.0 / _costmap->getCostmap()->getResolution())
+            // TODO : High distance causes stack overflow
+            (int) (4.0 / _costmap->getCostmap()->getResolution())
     );
     std::cout << "Obstacle points: " << points.size() << std::endl;
 
