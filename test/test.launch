@@ -23,34 +23,34 @@
         <rosparam>
             names: ["global_plan", "poly1", "poly2", "poly3", "poly4", "poly0" ]
             global_plan:
-            topic: "/move_base/MPC_Local_Planner/global_plan"
-            color: [ 0.5, 0.5, 0.0, 0.9 ]
-            scale: 0.1
+                topic: "/move_base/MPC_Local_Planner/global_plan"
+                color: [ 0.5, 0.5, 0.0, 0.9 ]
+                scale: 0.1
 
             poly0:
-            topic: "/move_base/MPC_Local_Planner/polys/poly0"
-            color: [ 0.0, 0.5, 0.5, 0.9 ]
-            scale: 0.1
+                topic: "/move_base/MPC_Local_Planner/polys/poly0"
+                color: [ 0.0, 0.5, 0.5, 0.9 ]
+                scale: 0.1
 
             poly1:
-            topic: "/move_base/MPC_Local_Planner/polys/poly1"
-            color: [ 0.0, 0.5, 0.5, 0.9 ]
-            scale: 0.1
+                topic: "/move_base/MPC_Local_Planner/polys/poly1"
+                color: [ 0.0, 0.5, 0.5, 0.9 ]
+                scale: 0.1
 
             poly2:
-            topic: "/move_base/MPC_Local_Planner/polys/poly2"
-            color: [ 0.0, 0.5, 0.5, 0.9 ]
-            scale: 0.1
+                topic: "/move_base/MPC_Local_Planner/polys/poly2"
+                color: [ 0.0, 0.5, 0.5, 0.9 ]
+                scale: 0.1
 
             poly3:
-            topic: "/move_base/MPC_Local_Planner/polys/poly3"
-            color: [ 0.0, 0.5, 0.5, 0.9 ]
-            scale: 0.1
+                topic: "/move_base/MPC_Local_Planner/polys/poly3"
+                color: [ 0.0, 0.5, 0.5, 0.9 ]
+                scale: 0.1
 
             poly4:
-            topic: "/move_base/MPC_Local_Planner/polys/poly4"
-            color: [ 0.0, 0.5, 0.5, 0.9 ]
-            scale: 0.1
+                topic: "/move_base/MPC_Local_Planner/polys/poly4"
+                color: [ 0.0, 0.5, 0.5, 0.9 ]
+                scale: 0.1
 
         </rosparam>
     </node>
