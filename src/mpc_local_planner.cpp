@@ -223,7 +223,14 @@ bool MPC_Local_Planner::computeVelocityCommands(geometry_msgs::Twist &cmd_vel) {
     _mpc->directionality = signum(plan_x_trans[0]);
 
     std::vector<std::vector<double>> polys = getObstacles();
-
+    _mpc->obstacles.clear();
+    if (!polys.empty()) {
+        for (auto &poly : polys) {
+            _mpc->obstacles.emplace_back(poly.size());
+            for (size_t i = 0; i < poly.size(); i++)
+                _mpc->obstacles.back()[i] = poly[i];
+        }
+    }
 
     p.header.stamp = ros::Time::now();
     p.header.frame_id = _costmap->getGlobalFrameID();
