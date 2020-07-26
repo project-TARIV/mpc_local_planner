@@ -157,14 +157,14 @@ std::vector<std::vector<double>> MPC_Local_Planner::getObstacles() const {
         Eigen::VectorXd poly_coeffs = polyfit(
                 Eigen::Map<Eigen::VectorXd>(x_doctored.data(), x_doctored.size()),
                 Eigen::Map<Eigen::VectorXd>(y_doctored.data(), y_doctored.size()),
-                2);
+                3);
 
         polynomials.emplace_back();
 
         // TODO: This seems to be changing the values
         // poly_coeffs.resize(3); // Ensure we have 3 values
 
-        polynomials.back() = {poly_coeffs[0], poly_coeffs[1], poly_coeffs[2]};
+        polynomials.back() = {poly_coeffs[0], poly_coeffs[1], poly_coeffs[2], poly_coeffs[3]};
     }
 
     std::cout << "Num obstacle polynomial: " << polynomials.size();
