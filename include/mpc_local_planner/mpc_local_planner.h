@@ -5,6 +5,7 @@
 #include <nav_core/base_local_planner.h>
 #include <mpc_lib/mpc.h>
 #include <vector>
+#include "../../src/pc_publisher.h"
 
 namespace mpc_local_planner {
 
@@ -41,6 +42,8 @@ namespace mpc_local_planner {
         tf2_ros::Buffer *_tf_buffer{nullptr};
         costmap_2d::Costmap2DROS *_costmap{nullptr};
         std::unique_ptr <ros::Publisher> _path_pub, _global_plan_pub;
+        std::unique_ptr<helper::PCPublisher> _pc_pub;
+
         std::array<std::unique_ptr<ros::Publisher>, 5> _poly_pubs;
         // mpc_lib things
         std::unique_ptr <mpc_lib::MPC> _mpc;

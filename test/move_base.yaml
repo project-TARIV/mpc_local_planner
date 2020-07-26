@@ -9,7 +9,7 @@ MPC_Local_Planner:
   wheel_dist: 0.65
 
   timeSteps: 15
-  frequency: 10 # Timesteps per second
+  frequency: 10 # Time steps per second
 
   reference:
     velocity: 1

@@ -69,8 +69,8 @@ void shadow_cast_quad(const std::pair<int, int> dir,
     const auto parity = dir.first * dir.second;
 
     if (parity == 1) {
-        // Normal Octent
-        std::vector <std::pair<int, int>> pts;
+        // Normal Octet
+        std::vector<std::pair<int, int>> pts;
         shadow_cast_octet(
                 [&is_blocked, &dir](int i, int j) {
                     return is_blocked(dir.first * i, dir.second * j);
@@ -87,8 +87,8 @@ void shadow_cast_quad(const std::pair<int, int> dir,
         }
 
 
-        // Mirrored octent
-        // i.e just swap the i and j co-oridnates
+        // Mirrored octet
+        // i.e just swap the i and j co-ordinates
         shadow_cast_octet(
                 [&is_blocked, &dir](int i, int j) {
                     return is_blocked(dir.first * j, dir.second * i);
@@ -101,8 +101,8 @@ void shadow_cast_quad(const std::pair<int, int> dir,
 
     } else if (parity == -1) {
         // Flip order to go counter clockwise
-        std::vector <std::pair<int, int>> pts;
-        // Mirrored octent
+        std::vector<std::pair<int, int>> pts;
+        // Mirrored octet
         shadow_cast_octet(
                 [&is_blocked, &dir](int i, int j) {
                     return is_blocked(dir.first * j, dir.second * i);
@@ -120,7 +120,7 @@ void shadow_cast_quad(const std::pair<int, int> dir,
         }
 
 
-        // Normal Octent
+        // Normal Octet
         shadow_cast_octet(
                 [&is_blocked, &dir](int i, int j) {
                     return is_blocked(dir.first * i, dir.second * j);

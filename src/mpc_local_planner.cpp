@@ -1,5 +1,4 @@
 #include "../include/mpc_local_planner/mpc_local_planner.h"
-#include <tf2/convert.h>
 #include <tf2/utils.h>
 #include <nav_msgs/Path.h>
 #include <virat_msgs/Polynomial.h>
@@ -7,12 +6,11 @@
 #include "shadow_casting.h"
 
 #include <chrono>
+#include <algorithm>
 
 #include <pluginlib/class_list_macros.h>
-#include <nav_msgs/GridCells.h>
 
-PLUGINLIB_EXPORT_CLASS(mpc_local_planner::MPC_Local_Planner, nav_core::BaseLocalPlanner
-)
+PLUGINLIB_EXPORT_CLASS(mpc_local_planner::MPC_Local_Planner, nav_core::BaseLocalPlanner)
 
 
 // simple signum from math
@@ -89,6 +87,9 @@ void MPC_Local_Planner::initialize(std::string name, tf2_ros::Buffer *tf_buffer,
                     private_nh.advertise<virat_msgs::Polynomial>("polys/poly" + std::to_string(i), 2));
         }
 
+        _pc_pub = std::make_unique<helper::PCPublisher>(
+                private_nh.advertise<sensor_msgs::PointCloud2>("obstacle_points", 2));
+
         _initialised = true;
     } else {
         ROS_WARN("Already initialised, doing nothing.");
@@ -96,7 +97,7 @@ void MPC_Local_Planner::initialize(std::string name, tf2_ros::Buffer *tf_buffer,
 }
 
 // Convert plan to a pair of vectors with x and y
-bool MPC_Local_Planner::setPlan(const std::vector <geometry_msgs::PoseStamped> &plan) {
+bool MPC_Local_Planner::setPlan(const std::vector<geometry_msgs::PoseStamped> &plan) {
     if (!isInitialized()) {
         ROS_ERROR("This planner not initialized.");
         return false;
@@ -228,7 +229,7 @@ bool MPC_Local_Planner::computeVelocityCommands(geometry_msgs::Twist &cmd_vel) {
 
     _mpc->directionality = signum(plan_x_trans[0]);
 
-    std::vector <std::vector<double>> polys = getObstacles();
+    std::vector<std::vector<double>> polys = getObstacles();
 
 
     p.header.stamp = ros::Time::now();
@@ -272,11 +273,11 @@ bool MPC_Local_Planner::computeVelocityCommands(geometry_msgs::Twist &cmd_vel) {
     return true;
 }
 
-std::vector <std::vector<double>> MPC_Local_Planner::getObstacles() const {
+std::vector<std::vector<double>> MPC_Local_Planner::getObstacles() const {
     double x, y, yaw;
     if (!get_trans(x, y, yaw)) return {};
 
-    std::vector <std::vector<double>> polynomials;
+    std::vector<std::vector<double>> polynomials;
 
     auto cp = _costmap->getCostmap();
 
@@ -286,7 +287,7 @@ std::vector <std::vector<double>> MPC_Local_Planner::getObstacles() const {
     cp->worldToMap(x, y, cx, cy);
 
     // The costmap co-ordinates of obstacle_points
-    std::vector <std::pair<int, int>> points;
+    std::vector<std::pair<int, int>> points;
     shadow_cast(
             [&cp, &cx, &cy](int i, int j) {
                 return ((unsigned int) cp->getCost(cx + i, cy + j)) > 200;
@@ -304,7 +305,7 @@ std::vector <std::vector<double>> MPC_Local_Planner::getObstacles() const {
         return {};
 
 
-    std::vector <size_t> split_points;
+    std::vector<size_t> split_points;
 
 
     // Find gaps between obstacles i.e split_points
@@ -353,6 +354,18 @@ std::vector <std::vector<double>> MPC_Local_Planner::getObstacles() const {
         pts_y[i] = shift_x * sin(-yaw) + shift_y * cos(-yaw);
     }
 
+    // TODO: Publish obstacle points
+    _pc_pub->clear_cloud();
+    _pc_pub->header->frame_id = _costmap->getBaseFrameID();
+    _pc_pub->header->stamp = ros::Time::now();
+    auto[xi, yi, zi] = _pc_pub->get_iter(pts_x.size());
+    for (size_t i = 0; i < pts_x.size(); i++) {
+        *xi = pts_x[i];
+        *yi = pts_y[i];
+        *zi = 0;
+        ++xi, ++yi, ++zi;
+    }
+    _pc_pub->publish();
 
     // Fit each obstacle to polynomial
     std::cout << "Fitting" << std::endl;
@@ -365,7 +378,10 @@ std::vector <std::vector<double>> MPC_Local_Planner::getObstacles() const {
                 Eigen::Map<Eigen::VectorXd>(pts_y.data(), pts_in_obstacle),
                 3);
 
+
         polynomials.emplace_back();
+
+        poly_coeffs.resize(3); // Ensure we have 3 values
         polynomials.back() = {poly_coeffs[0], poly_coeffs[1], poly_coeffs[2]};
     }
 
@@ -417,7 +433,7 @@ bool MPC_Local_Planner::isGoalReached() {
     return _plan.first.empty();
 }
 
-void MPC_Local_Planner::publish_plan(const std::vector <mpc_lib::State> &plan) {
+void MPC_Local_Planner::publish_plan(const std::vector<mpc_lib::State> &plan) {
     /*if (!_pub)
         return;*/
     nav_msgs::Path path;
