@@ -5,7 +5,7 @@
 #include <nav_core/base_local_planner.h>
 #include <mpc_lib/mpc.h>
 #include <vector>
-#include "../../src/pc_publisher.h"
+#include "../../src/helper.h"
 
 namespace mpc_local_planner {
 

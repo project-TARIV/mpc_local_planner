@@ -1,5 +1,18 @@
-#ifndef MPC_LOCAL_PLANNER_PC_PUBLISHER_H
-#define MPC_LOCAL_PLANNER_PC_PUBLISHER_H
+#ifndef MPC_LOCAL_PLANNER_HELPER_H
+#define MPC_LOCAL_PLANNER_HELPER_H
+
+#include <eigen3/Eigen/Core>
+#include <eigen3/Eigen/QR>
+
+// simple signum from math
+// Used for directionality
+inline double signum(double x) {
+    return (x > 0) - (x < 0);
+}
+
+namespace mpc_local_planner {
+    Eigen::VectorXd polyfit(const Eigen::VectorXd &xvals, const Eigen::VectorXd &yvals, int order);
+}
 
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud2.h>
@@ -22,5 +35,4 @@ namespace helper {
         void publish();
     };
 }
-
-#endif //MPC_LOCAL_PLANNER_PC_PUBLISHER_H
+#endif //MPC_LOCAL_PLANNER_HELPER_H
