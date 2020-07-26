@@ -1,9 +1,9 @@
-#include "../include/mpc_local_planner/mpc_local_planner.h"
+#include <mpc_local_planner/mpc_local_planner.h>
+
 #include <tf2/utils.h>
+
 #include <nav_msgs/Path.h>
 #include <virat_msgs/Polynomial.h>
-#include "../include/mpc_local_planner/helper.h"
-#include "../include/mpc_local_planner/shadow_casting.h"
 
 #include <chrono>
 #include <algorithm>
@@ -175,7 +175,7 @@ bool MPC_Local_Planner::computeVelocityCommands(geometry_msgs::Twist &cmd_vel) {
     }
 
     // Fit transformed plan to a polynomial
-    Eigen::VectorXd coeffs = mpc_local_planner::polyfit(
+    Eigen::VectorXd coeffs = helper::polyfit(
             Eigen::Map<Eigen::VectorXd>(plan_x_trans.data(), num_pts), // std::min(num_pts, plan_x_trans.size())),
             Eigen::Map<Eigen::VectorXd>(plan_y_trans.data(), num_pts), //std::min(num_pts, plan_y_trans.size())),
             3);

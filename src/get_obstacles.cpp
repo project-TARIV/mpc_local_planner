@@ -1,5 +1,5 @@
-#include "../include/mpc_local_planner/mpc_local_planner.h"
-#include "../include/mpc_local_planner/shadow_casting.h"
+#include <mpc_local_planner/mpc_local_planner.h>
+#include <mpc_local_planner/shadow_casting.h>
 
 // implement MPC_Local_Planner
 using namespace mpc_local_planner;
@@ -63,7 +63,7 @@ std::vector<std::vector<double>> MPC_Local_Planner::getObstacles() const {
 
     std::cout << "Section sizes: ";
     split_points.push_back(points.size());
-    for (int i = 0; i < split_points.size() - 1; i++) {
+    for (size_t i = 0; i < split_points.size() - 1; i++) {
         std::cout << split_points[i + 1] - split_points[i] << " ";
     }
     std::cout << std::endl;
@@ -73,7 +73,7 @@ std::vector<std::vector<double>> MPC_Local_Planner::getObstacles() const {
     pts_x.resize(points.size());
     pts_y.resize(points.size());
 
-    for (int i = split_points[0]; i < points.size(); i++) {
+    for (size_t i = split_points[0]; i < points.size(); i++) {
         // Costmap to world
         double xx, yy;
         cp->mapToWorld(points[i].first, points[i].second, xx, yy);
@@ -152,7 +152,7 @@ std::vector<std::vector<double>> MPC_Local_Planner::getObstacles() const {
         }*/
 
         // Get obstacle poly
-        Eigen::VectorXd poly_coeffs = polyfit(
+        Eigen::VectorXd poly_coeffs = helper::polyfit(
                 Eigen::Map<Eigen::VectorXd>(x_doctored.data(), x_doctored.size()),
                 Eigen::Map<Eigen::VectorXd>(y_doctored.data(), y_doctored.size()),
                 3);

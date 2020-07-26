@@ -1,7 +1,7 @@
 #include "../include/mpc_local_planner/helper.h"
 
 
-Eigen::VectorXd mpc_local_planner::polyfit(const Eigen::VectorXd &xvals, const Eigen::VectorXd &yvals, int order) {
+Eigen::VectorXd helper::polyfit(const Eigen::VectorXd &xvals, const Eigen::VectorXd &yvals, int order) {
     assert(xvals.size() == yvals.size());
     assert(order >= 1 && order <= xvals.size() - 1);
     Eigen::MatrixXd A(xvals.size(), order + 1);
@@ -28,7 +28,7 @@ namespace helper {
 
     using pc_iter = sensor_msgs::PointCloud2Iterator<float>;
 
-    std::array<pc_iter, 3> PCPublisher::get_iter(size_t size) {
+    std::array<pc_iter, 3> PCPublisher::get_iter(unsigned int size) {
         pc->width = size;
 
         sensor_msgs::PointCloud2Modifier(*pc).setPointCloud2FieldsByString(1, "xyz");
