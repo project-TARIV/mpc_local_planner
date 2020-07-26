@@ -1,7 +1,5 @@
 #include "../include/mpc_local_planner/mpc_local_planner.h"
-#include "helper.h"
-#include "shadow_casting.h"
-
+#include "../include/mpc_local_planner/shadow_casting.h"
 
 // implement MPC_Local_Planner
 using namespace mpc_local_planner;

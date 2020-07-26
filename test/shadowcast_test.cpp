@@ -5,7 +5,7 @@
 #include <vector>
 #include <iostream>
 
-#include "../src/shadow_casting.h"
+#include "../include/mpc_local_planner/shadow_casting.h"
 
 
 int main() {

@@ -1,6 +1,6 @@
 #include <cmath>
 #include <algorithm>
-#include "shadow_casting.h"
+#include "../include/mpc_local_planner/shadow_casting.h"
 
 /*
  * Shadow casts  on the lower triangle with base i:0...i_max between the slopes m_end and m_start, where m_end < m_start.

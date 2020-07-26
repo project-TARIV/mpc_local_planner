@@ -110,6 +110,7 @@ catkin_package(
 ## Your package locations should be listed before other locations
 include_directories(
         ${catkin_INCLUDE_DIRS}
+        include
 )
 
 ## Declare a C++ library
@@ -117,7 +118,8 @@ add_library(${PROJECT_NAME}
         src/mpc_local_planner.cpp
         src/shadow_casting.cpp
         src/get_obstacles.cpp
-        src/helper.cpp)
+        src/helper.cpp
+        )
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
