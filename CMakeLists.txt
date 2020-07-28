@@ -2,7 +2,11 @@ cmake_minimum_required(VERSION 3.0.2)
 project(mpc_local_planner)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-# add_compile_options(-std=c++11)
+add_compile_options(-std=c++17)
+
+# Stop IDEs from processing googletest dir
+# We need to remove this one day down the line.
+set(CATKIN_ENABLE_TESTING false)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -12,6 +16,8 @@ find_package(catkin REQUIRED COMPONENTS
         mpc_lib
         nav_core
         nav_msgs
+
+        virat_msgs
         )
 
 find_package(Eigen3 3.3 REQUIRED)
@@ -97,6 +103,7 @@ catkin_package(
         LIBRARIES mpc_local_planner
         #  CATKIN_DEPENDS other_catkin_pkg
         DEPENDS mpc_lib
+
 )
 
 ###########
@@ -107,11 +114,15 @@ catkin_package(
 ## Your package locations should be listed before other locations
 include_directories(
         ${catkin_INCLUDE_DIRS}
+        include
 )
 
 ## Declare a C++ library
 add_library(${PROJECT_NAME}
         src/mpc_local_planner.cpp
+        src/shadow_casting.cpp
+        src/get_obstacles.cpp
+        src/helper.cpp
         )
 
 ## Add cmake target dependencies of the library
@@ -122,7 +133,7 @@ add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EX
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-# add_executable(${PROJECT_NAME}_node src/mpc_local_planner_node.cpp)
+add_executable(shadow_test test/shadowcast_test.cpp src/shadow_casting.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -132,11 +143,15 @@ add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EX
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-# add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(shadow_test ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(${PROJECT_NAME}
         Eigen3::Eigen
+        ${catkin_LIBRARIES}
+        )
+
+target_link_libraries(shadow_test
         ${catkin_LIBRARIES}
         )
 

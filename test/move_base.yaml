@@ -5,35 +5,37 @@ planner_frequency: 0
 controller_frequency: 10
 
 MPC_Local_Planner:
-  controller:
-    timeSteps: 10
-    sampleTime: 0.1
 
-    reference:
-      velocity: 1
-      crossTrackError: 0
-      orientationError: 0
+  wheel_dist: 0.65
 
-    maxBounds:
-      maxOmega: 1.0
-      maxThrottle: 5.0
+  timeSteps: 15
+  frequency: 10 # Time steps per second
 
-    weights:
-      w_cte: 1000 # 3000
-      w_etheta: 3000
-      w_vel: 1000 # 1500
-      w_omega: 5
-      w_acc: 5
-      w_omega_d: 10
-      w_acc_d: 500
+  reference:
+    velocity: 1
+
+  limits:
+    vel: {low: -2, high: 2}
+    acc: {low: -1, high: 1}
+
+  weights:
+    etheta: 1000
+    cte: 500
+    vel: 10
+    omega: 10
+    acc: 1
+    obs: 100
+
 
 global_costmap:
   global_frame: map
 
-  width: 30.0
-  height: 30.0
-  origin_x: -15.0
-  origin_y: -15.0
+  width: 40.0
+  height: 40.0
+  origin_x: -20.0
+  origin_y: -20.0
+
+  publish_frequency: 0.2
 
   plugins:
     - {name: obstacle_layer, type: "costmap_2d::ObstacleLayer"}
@@ -41,7 +43,7 @@ global_costmap:
 
   obstacle_layer:
     observation_sources: laser_distance_sensor
-    laser_distance_sensor: {sensor_frame: laser_link, data_type: LaserScan, topic: scan, marking: true, clearing: true, obstacle_range: 4.5, raytrace_range: 4.5}
+    laser_distance_sensor: {sensor_frame: laser_link, data_type: LaserScan, topic: scan, marking: true, clearing: true, obstacle_range: 4.5, raytrace_range: 4.5, observation_persistence: 5.0}
   footprint: [[0.85,0], [0.75,0.15], [0.15, 0.28], [0.15, 0.34], [-0.08, 0.34], [-0.15, 0.26], [-0.15, -0.26], [-0.08, -0.34], [0.15, -0.34], [0.15, -0.28], [0.75,-0.15]]
   footprint_padding: 0.05
 
@@ -50,5 +52,10 @@ local_costmap:
   footprint: [[0.85,0], [0.75,0.15], [0.15, 0.28], [0.15, 0.34], [-0.08, 0.34], [-0.15, 0.26], [-0.15, -0.26], [-0.08, -0.34], [0.15, -0.34], [0.15, -0.28], [0.75,-0.15]]
   footprint_padding: 0.05
   rolling_window: true
+  publish_frequency: 0.2
+
   plugins:
-    - {name: inflation_layer, type: "costmap_2d::InflationLayer"}
+    - {name: obstacle_layer, type: "costmap_2d::ObstacleLayer"}
+  obstacle_layer:
+    observation_sources: laser_distance_sensor
+    laser_distance_sensor: {sensor_frame: laser_link, data_type: LaserScan, topic: scan, marking: true, clearing: true, obstacle_range: 4.5, raytrace_range: 4.5, observation_persistence: 5.0}
