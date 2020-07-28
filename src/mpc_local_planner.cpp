@@ -48,7 +48,6 @@ void MPC_Local_Planner::initialize(std::string name, tf2_ros::Buffer *tf_buffer,
             private_nh.getParam("frequency", p.forward.frequency);
 
             private_nh.getParam("reference/velocity", p.v_ref);
-
             private_nh.getParam("limits/vel/low", p.limits.vel.low);
             private_nh.getParam("limits/vel/high", p.limits.vel.high);
             private_nh.getParam("limits/acc/low", p.limits.acc.low);
@@ -59,6 +58,7 @@ void MPC_Local_Planner::initialize(std::string name, tf2_ros::Buffer *tf_buffer,
             private_nh.getParam("weights/vel", p.wt.vel);
             private_nh.getParam("weights/omega", p.wt.omega);
             private_nh.getParam("weights/acc", p.wt.acc);
+            private_nh.getParam("weights/obs", p.wt.obs);
         }
 
         _mpc = std::make_unique<mpc_lib::MPC>(p);

@@ -24,6 +24,7 @@ MPC_Local_Planner:
     vel: 10
     omega: 10
     acc: 1
+    obs: 100
 
 
 global_costmap:
