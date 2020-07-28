@@ -6,7 +6,6 @@
 #include <virat_msgs/Polynomial.h>
 
 #include <chrono>
-#include <algorithm>
 
 #include <pluginlib/class_list_macros.h>
 
