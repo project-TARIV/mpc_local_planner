@@ -238,7 +238,7 @@ bool MPC_Local_Planner::computeVelocityCommands(geometry_msgs::Twist &cmd_vel) {
         p.coeffs = {poly[0], poly[1], poly[2]};
         _poly_pubs[i]->publish(p);
         i++;
-        if (i > _poly_pubs.size())
+        if (i >= _poly_pubs.size())
             break;
     }
 
