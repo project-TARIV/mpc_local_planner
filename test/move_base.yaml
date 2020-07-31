@@ -17,6 +17,7 @@ MPC_Local_Planner:
   limits:
     vel: {low: -2, high: 2}
     acc: {low: -1, high: 1}
+    # obstacle_poly: {low: 0.5, high: }
 
   weights:
     etheta: 1000

@@ -59,6 +59,7 @@ void MPC_Local_Planner::initialize(std::string name, tf2_ros::Buffer *tf_buffer,
             private_nh.getParam("weights/omega", p.wt.omega);
             private_nh.getParam("weights/acc", p.wt.acc);
             private_nh.getParam("weights/obs", p.wt.obs);
+            p.limits.obstacle_poly = {0.5, std::numeric_limits<double>::max()};
         }
 
         _mpc = std::make_unique<mpc_lib::MPC>(p);
