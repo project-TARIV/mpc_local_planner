@@ -56,6 +56,12 @@ local_costmap:
 
   plugins:
     - {name: obstacle_layer, type: "costmap_2d::ObstacleLayer"}
+    - {name: inflation_layer, type: "costmap_2d::InflationLayer"}
+
   obstacle_layer:
     observation_sources: laser_distance_sensor
     laser_distance_sensor: {sensor_frame: laser_link, data_type: LaserScan, topic: scan, marking: true, clearing: true, obstacle_range: 4.5, raytrace_range: 4.5, observation_persistence: 5.0}
+
+  inflation_layer:
+    inflation_radius: 0.5
+    cost_scaling_factor: 10
