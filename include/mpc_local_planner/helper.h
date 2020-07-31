@@ -5,8 +5,8 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/point_cloud2_iterator.h>
 
-#include <eigen3/Eigen/Core>
-#include <eigen3/Eigen/QR>
+#include <Eigen/Core>
+#include <Eigen/QR>
 
 
 inline double signum(double x) {

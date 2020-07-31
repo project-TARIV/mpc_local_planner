@@ -157,3 +157,11 @@ install(DIRECTORY include/${PROJECT_NAME}/
 install(DIRECTORY launch/
         DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
         PATTERN ".git" EXCLUDE)
+
+
+## Prints all CMake Vars-
+#get_cmake_property(_variableNames VARIABLES)
+#list(SORT _variableNames)
+#foreach (_variableName ${_variableNames})
+#    message(STATUS "${_variableName}=${${_variableName}}")
+#endforeach ()
