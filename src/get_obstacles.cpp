@@ -107,6 +107,10 @@ std::vector<std::vector<double>> MPC_Local_Planner::getObstacles() const {
 
         // Here, we are going to add some extra points, to ensure the polynomial goes away from the robot
         // This is pretty inefficient, the entire set of points is being copied each time.
+        // x =              [ -3, -2, -1, 0, 1, 2, 3, 4 ]            y =              [ -9, -4, -1, 0, 1, 4, 9,16]
+        // to
+        // x =   [-3, -3, -3, -3, -2, -1, 0, 1, 2, 3, 4, 4, 4, 4]    y = [-12, -11, -10 -9, -4, -1, 0,1,4,9,16,17,18,19]
+
         std::vector<double> x_doctored(pts_x.data() + split_points[segment_num],
                                        pts_x.data() + split_points[segment_num] + pts_in_obstacle);
         x_doctored.resize(pts_in_obstacle + 6);
