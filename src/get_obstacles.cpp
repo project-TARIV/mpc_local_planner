@@ -1,6 +1,8 @@
 #include <mpc_local_planner/mpc_local_planner.h>
 #include <mpc_local_planner/shadow_casting.h>
 
+#include <cmath> // std::abs(double)
+
 // implement MPC_Local_Planner
 using namespace mpc_local_planner;
 
@@ -157,15 +159,17 @@ std::vector<std::vector<double>> MPC_Local_Planner::getObstacles() const {
                 Eigen::Map<Eigen::VectorXd>(y_doctored.data(), y_doctored.size()),
                 3);
 
-        polynomials.emplace_back();
 
         // TODO: This seems to be changing the values
-        // poly_coeffs.resize(3); // Ensure we have 3 values
+        poly_coeffs.resize(4); // Ensure we have 4 values
+        if (std::abs(poly_coeffs[0]) > 100) {
+            continue;
+        }
 
-        polynomials.back() = {poly_coeffs[0], poly_coeffs[1], poly_coeffs[2], poly_coeffs[3]};
+        polynomials.push_back({poly_coeffs[0], poly_coeffs[1], poly_coeffs[2], poly_coeffs[3]});
     }
 
-    std::cout << "Num obstacle polynomial: " << polynomials.size();
+    std::cout << "Num obstacle polynomial: " << polynomials.size() << std::endl;
 
     return polynomials;
 }
