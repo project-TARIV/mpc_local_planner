@@ -39,4 +39,4 @@ Modified (bending) recursive shadow casting to get useful obstacle boundaries in
 ```
 
 Path and obstacle poly fitting:  
-![Path and obstacle poly example](https://user-images.githubusercontent.com/6284428/87867471-96cf1b00-c9aa-11ea-96c9-c6f3652dea62.png
+![Path and obstacle poly example](https://user-images.githubusercontent.com/6284428/87867471-96cf1b00-c9aa-11ea-96c9-c6f3652dea62.png)
