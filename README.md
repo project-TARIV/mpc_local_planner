@@ -10,7 +10,7 @@ TODO
 
 Modified (bending) recursive shadow casting to get useful obstacle boundaries in circular order:
 
-```bash
+```lua
 38 outline points.
 '@' is the robot.
 '.' is empty space.
